@@ -1,7 +1,7 @@
 import React from 'react';
-import { ArrowRight, ChevronLeft } from 'lucide-react';
+import { ArrowRight, ChevronLeft, Zap } from 'lucide-react';
 
-export default function GrammarView({ activeGrammarTopic, setActiveGrammarTopic, setView, grammarTopics }) {
+export default function GrammarView({ activeGrammarTopic, setActiveGrammarTopic, setView, grammarTopics, startGrammarPractice }) {
   if (activeGrammarTopic) {
     const topic = grammarTopics.find((t) => t.id === activeGrammarTopic);
 
@@ -18,7 +18,19 @@ export default function GrammarView({ activeGrammarTopic, setActiveGrammarTopic,
         </div>
 
         <div className="flex-1 bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 overflow-y-auto">
-          {topic.content}
+          <div className="space-y-4">
+            {topic.content}
+            <button
+              onClick={() => startGrammarPractice(topic.practiceSectionId || topic.id)}
+              className="w-full flex items-center justify-between p-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all"
+            >
+              <div className="flex items-center gap-2 font-bold">
+                <Zap className="w-4 h-4" />
+                Jetzt dieses Thema üben
+              </div>
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -38,6 +50,20 @@ export default function GrammarView({ activeGrammarTopic, setActiveGrammarTopic,
           <p className="text-sm text-slate-500">Das Fundament von A1 bis C1</p>
         </div>
       </div>
+
+      <button
+        onClick={() => startGrammarPractice()}
+        className="w-full flex items-center justify-between p-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl transition-all shadow-md shadow-indigo-200 dark:shadow-none"
+      >
+        <div className="flex items-center gap-3">
+          <Zap className="w-5 h-5" />
+          <div className="text-left">
+            <div className="font-bold">Grammatik üben</div>
+            <div className="text-indigo-200 text-sm">Alle Teilbereiche als Quiz trainieren</div>
+          </div>
+        </div>
+        <ArrowRight className="w-5 h-5" />
+      </button>
 
       <div className="space-y-3 h-[65vh] overflow-y-auto pr-2 pb-4">
         {grammarTopics.map((topic) => {

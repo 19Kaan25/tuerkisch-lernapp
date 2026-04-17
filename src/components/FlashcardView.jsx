@@ -1,10 +1,12 @@
 import React from 'react';
-import { ArrowRight, Check, Library, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, Library, X } from 'lucide-react';
 
 export default function FlashcardView({
   view,
   currentQueue,
   currentIndex,
+  progress,
+  getProgressKey,
   isCardFlipped,
   setIsCardFlipped,
   learningDirection,
@@ -18,6 +20,8 @@ export default function FlashcardView({
   const isReview = view === 'review';
   const isFreePractice = view === 'free_practice';
   const word = currentQueue[currentIndex];
+  const cardMeta = word && progress && getProgressKey ? progress[getProgressKey(word.id)] : null;
+  const isLeech = !!cardMeta?.isLeech;
 
   if (!word) return null;
 
@@ -53,6 +57,12 @@ export default function FlashcardView({
         <div className="absolute top-6 left-6 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider">
           {word.type}
         </div>
+        {isLeech && !isFreePractice && (
+          <div className="absolute top-6 right-6 bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider flex items-center gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5" />
+            Schwierige Karte
+          </div>
+        )}
 
         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
           <h1 className={`${!isRevealed && isDeToTr ? 'text-4xl md:text-5xl' : 'text-5xl md:text-6xl'} font-black text-slate-800 dark:text-white tracking-tight px-4`}>

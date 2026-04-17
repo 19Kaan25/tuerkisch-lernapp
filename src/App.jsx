@@ -1,12 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { BrainCircuit } from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import DeckListView from './components/DeckListView';
 import GrammarView from './components/GrammarView';
 import FlashcardView from './components/FlashcardView';
+import GrammarPracticeView from './components/GrammarPracticeView';
+import { GRAMMAR_PRACTICE_SECTIONS } from './data/grammarPracticeBank';
+import { GRAMMAR_TOPICS } from './data/grammarTheoryTopics';
 
-// --- GRAMMATIK DATEN (A1 bis C1) ---
-const GRAMMAR_TOPICS = [
+// --- LEGACY: GRAMMATIK DATEN (A1 bis C1) ---
+const LEGACY_GRAMMAR_TOPICS = [
   {
     id: 'vokalharmonie',
     title: '1. Die Vokalharmonie',
@@ -400,9 +403,14 @@ const formatTurkishText = (text, xRayOn, boldRoot = false) => {
 
 // --- HAUPT-APP KOMPONENTE ---
 export default function App() {
+  const MIN_EASE = 1.3;
+  const MAX_EASE = 2.8;
+  const LEECH_THRESHOLD = 3;
+  const LEARNING_STEPS_MS = [10 * 60 * 1000, 24 * 60 * 60 * 1000, 3 * 24 * 60 * 60 * 1000];
+
   const [vocab, setVocab] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [view, setView] = useState('dashboard'); // 'dashboard', 'learn', 'review', 'deck_list', 'free_practice', 'grammar'
+  const [view, setView] = useState('dashboard'); // 'dashboard', 'learn', 'review', 'deck_list', 'free_practice', 'grammar', 'grammar_practice'
   
   const [progress, setProgress] = useState(() => {
     const savedProgress = localStorage.getItem('turkishVocabProgress');
@@ -426,6 +434,11 @@ export default function App() {
   
   // Grammar State
   const [activeGrammarTopic, setActiveGrammarTopic] = useState(null);
+  const [selectedPracticeSectionId, setSelectedPracticeSectionId] = useState(null);
+  const [grammarPracticeProgress, setGrammarPracticeProgress] = useState(() => {
+    const savedProgress = localStorage.getItem('turkishGrammarPracticeProgressV1');
+    return savedProgress ? JSON.parse(savedProgress) : {};
+  });
 
   useEffect(() => {
     fetch('/vocab.json')
@@ -470,10 +483,14 @@ export default function App() {
     localStorage.setItem('turkishVocabDirection', learningDirection);
   }, [learningDirection]);
 
+  useEffect(() => {
+    localStorage.setItem('turkishGrammarPracticeProgressV1', JSON.stringify(grammarPracticeProgress));
+  }, [grammarPracticeProgress]);
+
   // Hilfsfunktion: Gibt die korrekte ID für den Speicher-Fortschritt zurück
-  const getProgressKey = (id) => {
+  const getProgressKey = useCallback((id) => {
     return learningDirection === 'de-tr' ? `${id}_rev` : String(id);
-  };
+  }, [learningDirection]);
 
   const stats = useMemo(() => {
     const now = Date.now();
@@ -491,7 +508,7 @@ export default function App() {
 
     const newWords = vocab.length - learned;
     return { learned, due, newWords, total: vocab.length };
-  }, [progress, vocab, learningDirection]);
+  }, [progress, vocab, getProgressKey]);
 
   // --- ACTIONS ---
 
@@ -510,6 +527,10 @@ export default function App() {
     const dueCards = vocab.filter(word => {
       const p = progress[getProgressKey(word.id)];
       return p && p.nextReview <= now;
+    }).sort((a, b) => {
+      const aData = progress[getProgressKey(a.id)];
+      const bData = progress[getProgressKey(b.id)];
+      return aData.nextReview - bData.nextReview;
     });
     
     if (dueCards.length > 0) {
@@ -530,13 +551,59 @@ export default function App() {
     }
   };
 
+  const startGrammarPractice = (sectionId = null) => {
+    setSelectedPracticeSectionId(sectionId);
+    setView('grammar_practice');
+  };
+
+  const openGrammarTheoryFromPractice = (sectionId) => {
+    const matchedTopic = GRAMMAR_TOPICS.find(
+      (topic) => (topic.practiceSectionId || topic.id) === sectionId,
+    );
+
+    if (matchedTopic) {
+      setActiveGrammarTopic(matchedTopic.id);
+    } else {
+      setActiveGrammarTopic(null);
+    }
+    setView('grammar');
+  };
+
+  const handleGrammarPracticeComplete = (sectionId, correct, total) => {
+    setGrammarPracticeProgress((prev) => {
+      const existing = prev[sectionId] || {
+        attempts: 0,
+        bestCorrect: 0,
+        total,
+      };
+
+      return {
+        ...prev,
+        [sectionId]: {
+          attempts: existing.attempts + 1,
+          bestCorrect: Math.max(existing.bestCorrect, correct),
+          total,
+          lastCorrect: correct,
+          lastPlayedAt: Date.now(),
+        },
+      };
+    });
+  };
+
   const handleLearnNext = () => {
     const word = currentQueue[currentIndex];
     const pKey = getProgressKey(word.id);
     
     setProgress(prev => ({
       ...prev,
-      [pKey]: { interval: 0, ease: 2.5, nextReview: Date.now() }
+      [pKey]: {
+        interval: 0,
+        ease: 2.3,
+        learningStep: 0,
+        failedStreak: 0,
+        isLeech: false,
+        nextReview: Date.now(),
+      }
     }));
 
     if (currentIndex < currentQueue.length - 1) {
@@ -559,24 +626,98 @@ export default function App() {
   const handleReviewAnswer = (quality) => {
     const word = currentQueue[currentIndex];
     const pKey = getProgressKey(word.id);
-    const currentData = progress[pKey];
+    const currentData = progress[pKey] || {
+      interval: 0,
+      ease: 2.3,
+      learningStep: null,
+      failedStreak: 0,
+      isLeech: false,
+    };
     let newInterval = currentData.interval;
     let newEase = currentData.ease;
+    const failedStreak = currentData.failedStreak || 0;
+
+    // Lernphase: 10min -> 1d -> 3d
+    if (currentData.learningStep !== null && currentData.learningStep !== undefined) {
+      if (quality === 0) {
+        const adjustedEase = Math.max(MIN_EASE, newEase - 0.2);
+        setProgress(prev => ({
+          ...prev,
+          [pKey]: {
+            ...currentData,
+            interval: 0,
+            ease: adjustedEase,
+            learningStep: 0,
+            failedStreak: failedStreak + 1,
+            isLeech: failedStreak + 1 >= LEECH_THRESHOLD,
+            nextReview: Date.now() + LEARNING_STEPS_MS[0],
+          }
+        }));
+      } else {
+        const nextStep = currentData.learningStep + 1;
+        const nextFailedStreak = quality === 2 ? 0 : failedStreak;
+
+        if (nextStep < LEARNING_STEPS_MS.length) {
+          setProgress(prev => ({
+            ...prev,
+            [pKey]: {
+              ...currentData,
+              ease: quality === 2 ? Math.min(MAX_EASE, newEase + 0.05) : newEase,
+              learningStep: nextStep,
+              failedStreak: nextFailedStreak,
+              isLeech: false,
+              nextReview: Date.now() + LEARNING_STEPS_MS[nextStep],
+            }
+          }));
+        } else {
+          const graduatedInterval = quality === 2 ? 4 : 3;
+          setProgress(prev => ({
+            ...prev,
+            [pKey]: {
+              ...currentData,
+              interval: graduatedInterval,
+              ease: quality === 2 ? Math.min(MAX_EASE, newEase + 0.1) : newEase,
+              learningStep: null,
+              failedStreak: nextFailedStreak,
+              isLeech: false,
+              nextReview: Date.now() + (graduatedInterval * 24 * 60 * 60 * 1000),
+            }
+          }));
+        }
+      }
+
+      if (currentIndex < currentQueue.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+        setIsCardFlipped(false);
+      } else {
+        setView('dashboard');
+      }
+      return;
+    }
 
     if (quality === 0) {
-      newInterval = 0; 
+      newInterval = 0;
+      newEase = Math.max(MIN_EASE, newEase - 0.2);
     } else if (quality === 1) {
       newInterval = newInterval === 0 ? 1 : newInterval * 2;
+      newEase = Math.max(MIN_EASE, newEase - 0.02);
     } else if (quality === 2) {
       newInterval = newInterval === 0 ? 3 : Math.ceil(newInterval * newEase);
-      newEase += 0.15; 
+      newEase = Math.min(MAX_EASE, newEase + 0.15);
     }
 
     const nextReview = Date.now() + (newInterval * 24 * 60 * 60 * 1000); 
     
     setProgress(prev => ({
       ...prev,
-      [pKey]: { interval: newInterval, ease: newEase, nextReview: quality === 0 ? Date.now() : nextReview }
+      [pKey]: {
+        ...currentData,
+        interval: newInterval,
+        ease: newEase,
+        failedStreak: quality === 0 ? failedStreak + 1 : 0,
+        isLeech: quality === 0 ? failedStreak + 1 >= LEECH_THRESHOLD : false,
+        nextReview: quality === 0 ? Date.now() : nextReview,
+      }
     }));
 
     if (currentIndex < currentQueue.length - 1) {
@@ -609,6 +750,7 @@ export default function App() {
                 startReviewSession={startReviewSession}
                 setView={setView}
                 setActiveGrammarTopic={setActiveGrammarTopic}
+                startGrammarPractice={startGrammarPractice}
                 xRayMode={xRayMode}
                 setXRayMode={setXRayMode}
               />
@@ -626,6 +768,17 @@ export default function App() {
                 setActiveGrammarTopic={setActiveGrammarTopic}
                 setView={setView}
                 grammarTopics={GRAMMAR_TOPICS}
+                startGrammarPractice={startGrammarPractice}
+              />
+            )}
+            {view === 'grammar_practice' && (
+              <GrammarPracticeView
+                sections={GRAMMAR_PRACTICE_SECTIONS}
+                progress={grammarPracticeProgress}
+                onCompleteSection={handleGrammarPracticeComplete}
+                setView={setView}
+                initialSectionId={selectedPracticeSectionId}
+                onOpenTheoryForSection={openGrammarTheoryFromPractice}
               />
             )}
             {(view === 'learn' || view === 'review' || view === 'free_practice') && (
@@ -633,6 +786,8 @@ export default function App() {
                 view={view}
                 currentQueue={currentQueue}
                 currentIndex={currentIndex}
+                progress={progress}
+                getProgressKey={getProgressKey}
                 isCardFlipped={isCardFlipped}
                 setIsCardFlipped={setIsCardFlipped}
                 learningDirection={learningDirection}

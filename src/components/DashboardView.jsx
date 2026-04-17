@@ -18,6 +18,7 @@ export default function DashboardView({
   startReviewSession,
   setView,
   setActiveGrammarTopic,
+  startGrammarPractice,
   xRayMode,
   setXRayMode,
 }) {
@@ -119,6 +120,20 @@ export default function DashboardView({
             <div className="text-amber-600/70 dark:text-amber-500/70 text-xs mt-1">A1 bis C1 Regeln</div>
           </button>
         </div>
+
+        <button
+          onClick={() => startGrammarPractice()}
+          className="w-full flex items-center justify-between p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-indigo-200 dark:border-indigo-800/50 text-slate-800 dark:text-white rounded-2xl transition-all"
+        >
+          <div className="flex items-center gap-3 text-left">
+            <GraduationCap className="w-5 h-5 text-indigo-500" />
+            <div>
+              <div className="font-bold">Grammatik direkt üben</div>
+              <div className="text-slate-500 text-sm">Quiz zu allen Teilbereichen starten</div>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5 text-slate-400" />
+        </button>
       </div>
 
       <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
