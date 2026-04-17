@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { BrainCircuit, BookOpen, RotateCcw, Eye, EyeOff, ArrowRight, Library, Zap, Check, X, Layers, Play, GraduationCap, ChevronLeft } from 'lucide-react';
+import { BrainCircuit } from 'lucide-react';
+import DashboardView from './components/DashboardView';
+import DeckListView from './components/DeckListView';
+import GrammarView from './components/GrammarView';
+import FlashcardView from './components/FlashcardView';
 
 // --- GRAMMATIK DATEN (A1 bis C1) ---
 const GRAMMAR_TOPICS = [
@@ -585,327 +589,6 @@ export default function App() {
 
   // --- VIEWS ---
 
-  const renderDashboard = () => (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
-      
-      <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl flex items-center border border-slate-200 dark:border-slate-700 shadow-sm">
-        <button
-          onClick={() => setLearningDirection('tr-de')}
-          className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${learningDirection === 'tr-de' ? 'bg-white dark:bg-slate-700 shadow-md text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-        >
-          <span className="text-lg">🇹🇷 ➔ 🇩🇪</span>
-          <span className="hidden sm:inline">Verstehen</span>
-        </button>
-        <button
-          onClick={() => setLearningDirection('de-tr')}
-          className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${learningDirection === 'de-tr' ? 'bg-white dark:bg-slate-700 shadow-md text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-        >
-          <span className="text-lg">🇩🇪 ➔ 🇹🇷</span>
-          <span className="hidden sm:inline">Sprechen</span>
-        </button>
-      </div>
-
-      <div className="flex flex-col items-center justify-center p-8 bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl mb-8">
-        <BrainCircuit className="w-16 h-16 text-indigo-500 mb-4" />
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
-          {learningDirection === 'tr-de' ? 'Lernfortschritt (Passiv)' : 'Lernfortschritt (Aktiv)'}
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400 text-center mt-2 max-w-sm">
-          Lerne die häufigsten türkischen Wörter systematisch und effizient.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center">
-          <span className="text-3xl font-black text-slate-800 dark:text-white">{stats.total}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">Gesamt</span>
-        </div>
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center">
-          <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{stats.learned}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">Gelernt</span>
-        </div>
-        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center relative">
-          {stats.due > 0 && <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>}
-          <span className={`text-3xl font-black ${stats.due > 0 ? 'text-red-500' : 'text-emerald-500'}`}>{stats.due}</span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">Fällig</span>
-        </div>
-      </div>
-
-      <div className="space-y-3 mt-8">
-        <button 
-          onClick={startLearnSession}
-          disabled={stats.newWords === 0}
-          className="w-full flex items-center justify-between p-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-2xl transition-all shadow-md shadow-indigo-200 dark:shadow-none"
-        >
-          <div className="flex items-center gap-3">
-            <BookOpen className="w-6 h-6" />
-            <div className="text-left">
-              <div className="font-bold">Neue Wörter lernen</div>
-              <div className="text-indigo-200 text-sm">{stats.newWords} verfügbar</div>
-            </div>
-          </div>
-          <ArrowRight className="w-5 h-5" />
-        </button>
-
-        <button 
-          onClick={startReviewSession}
-          disabled={stats.due === 0}
-          className="w-full flex items-center justify-between p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-800 dark:text-white rounded-2xl transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <RotateCcw className={`w-6 h-6 ${stats.due > 0 ? 'text-red-500' : 'text-slate-400'}`} />
-            <div className="text-left">
-              <div className="font-bold">Wiederholen</div>
-              <div className="text-slate-500 text-sm">{stats.due} Karteikarten warten</div>
-            </div>
-          </div>
-          <ArrowRight className="w-5 h-5 text-slate-400" />
-        </button>
-
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <button 
-            onClick={() => setView('deck_list')}
-            className="flex flex-col items-center justify-center p-4 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl transition-all border border-transparent dark:border-slate-700 text-center"
-          >
-            <Layers className="w-6 h-6 text-slate-500 mb-2" />
-            <div className="font-bold text-sm">Decks & Üben</div>
-            <div className="text-slate-500 text-xs mt-1">Ohne Algorithmus</div>
-          </button>
-          
-          <button 
-            onClick={() => { setActiveGrammarTopic(null); setView('grammar'); }}
-            className="flex flex-col items-center justify-center p-4 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-2xl transition-all border border-transparent dark:border-amber-800/50 text-center"
-          >
-            <GraduationCap className="w-6 h-6 text-amber-500 mb-2" />
-            <div className="font-bold text-sm">Grammatik</div>
-            <div className="text-amber-600/70 dark:text-amber-500/70 text-xs mt-1">A1 bis C1 Regeln</div>
-          </button>
-        </div>
-      </div>
-
-      <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
-          <div className="flex items-center gap-3">
-            {xRayMode ? <Eye className="w-5 h-5 text-cyan-500" /> : <EyeOff className="w-5 h-5 text-slate-400" />}
-            <div>
-              <div className="font-semibold text-sm text-slate-800 dark:text-slate-200">X-Ray Vokalharmonie</div>
-              <div className="text-xs text-slate-500 flex gap-2 mt-1">
-                <span className="text-cyan-500 font-bold">Helle Vokale</span> • 
-                <span className="text-orange-500 font-bold">Dunkle Vokale</span>
-              </div>
-            </div>
-          </div>
-          <button 
-            onClick={() => setXRayMode(!xRayMode)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${xRayMode ? 'bg-cyan-500' : 'bg-slate-300 dark:bg-slate-600'}`}
-          >
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${xRayMode ? 'translate-x-6' : 'translate-x-1'}`} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderDeckList = () => (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
-      <div className="flex items-center mb-6">
-        <button onClick={() => setView('dashboard')} className="p-2 mr-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-          <ArrowRight className="w-5 h-5 rotate-180" />
-        </button>
-        <div>
-          <h2 className="text-xl font-bold text-slate-800 dark:text-white">Decks verwalten</h2>
-          <p className="text-sm text-slate-500">Freies Üben ohne Fortschritts-Tracking</p>
-        </div>
-      </div>
-
-      <div className="space-y-3 h-[65vh] overflow-y-auto pr-2 pb-4">
-        {decks.map((deck) => (
-          <div key={deck.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <div className="font-bold text-slate-800 dark:text-white">{deck.title}</div>
-              <div className="text-sm text-slate-500">{deck.subtitle} ({deck.maxId - deck.minId + 1} Wörter)</div>
-            </div>
-            <button 
-              onClick={() => startFreePractice(deck)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors w-full sm:w-auto justify-center"
-            >
-              <Play className="w-4 h-4 fill-current" />
-              Üben
-            </button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
-  const renderGrammar = () => {
-    if (activeGrammarTopic) {
-      const topic = GRAMMAR_TOPICS.find(t => t.id === activeGrammarTopic);
-      return (
-        <div className="animate-in fade-in slide-in-from-right-4 duration-300 flex flex-col h-[85vh]">
-          <div className="flex items-center mb-6 shrink-0">
-            <button onClick={() => setActiveGrammarTopic(null)} className="p-2 mr-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white">{topic.title}</h2>
-          </div>
-          
-          <div className="flex-1 bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 overflow-y-auto">
-            {topic.content}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
-        <div className="flex items-center mb-6">
-          <button onClick={() => setView('dashboard')} className="p-2 mr-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
-            <ArrowRight className="w-5 h-5 rotate-180" />
-          </button>
-          <div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Grammatik-Bibliothek</h2>
-            <p className="text-sm text-slate-500">Das Fundament von A1 bis C1</p>
-          </div>
-        </div>
-
-        <div className="space-y-3 h-[65vh] overflow-y-auto pr-2 pb-4">
-          {GRAMMAR_TOPICS.map((topic) => {
-            const isAdvanced = topic.subtitle.includes('C1') || topic.subtitle.includes('B2');
-            
-            return (
-              <button 
-                key={topic.id}
-                onClick={() => setActiveGrammarTopic(topic.id)}
-                className="w-full text-left bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden"
-              >
-                {isAdvanced && (
-                  <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-500"></div>
-                )}
-                
-                <div className={isAdvanced ? "pl-2" : ""}>
-                  <div className="font-bold text-slate-800 dark:text-white text-lg flex items-center gap-2">
-                    {topic.title}
-                  </div>
-                  <div className="text-sm text-slate-500 mt-1">{topic.subtitle}</div>
-                </div>
-                <div className="bg-amber-50 dark:bg-amber-900/30 p-2 rounded-full group-hover:bg-amber-100 dark:group-hover:bg-amber-800/50 transition-colors shrink-0 ml-3">
-                  <ArrowRight className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
-  const renderFlashcard = () => {
-    const isReview = view === 'review';
-    const isFreePractice = view === 'free_practice';
-    const word = currentQueue[currentIndex];
-    
-    if (!word) return null;
-
-    let headerText = 'Neu Lernen';
-    if (isReview) headerText = 'Wiederholung';
-    if (isFreePractice) headerText = 'Freies Üben';
-
-    const isRevealed = isCardFlipped || (!isReview && !isFreePractice);
-    const isDeToTr = learningDirection === 'de-tr';
-
-    let mainDisplayText;
-    if (!isRevealed && isDeToTr) {
-      mainDisplayText = word.de_trans; // Vorne: Deutsch
-    } else {
-      mainDisplayText = formatTurkishText(`{${word.tr_root}}`, xRayMode, false); // Vorne/Hinten: Türkisch
-    }
-
-    return (
-      <div className="flex flex-col h-[80vh]">
-        <div className="flex justify-between items-center mb-6">
-          <span className="text-sm font-medium text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            {isDeToTr ? '🇩🇪 ➔ 🇹🇷' : '🇹🇷 ➔ 🇩🇪'} • {headerText} • {currentIndex + 1} / {currentQueue.length}
-          </span>
-          <button onClick={() => isFreePractice ? setView('deck_list') : setView('dashboard')} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-100 dark:bg-slate-800 rounded-full transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Die Karteikarte */}
-        <div className="flex-1 bg-white dark:bg-slate-800 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 flex flex-col p-8 relative overflow-hidden transition-all duration-300">
-          
-          <div className="absolute top-6 left-6 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider">
-            {word.type}
-          </div>
-
-          <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
-            
-            <h1 className={`${!isRevealed && isDeToTr ? 'text-4xl md:text-5xl' : 'text-5xl md:text-6xl'} font-black text-slate-800 dark:text-white tracking-tight px-4`}>
-              {mainDisplayText}
-            </h1>
-
-            <div className={`transition-all duration-500 flex flex-col items-center space-y-8 w-full ${isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-              
-              <div className="text-2xl font-medium text-slate-500 dark:text-slate-400">
-                {word.de_trans}
-              </div>
-
-              <div className="w-full max-w-sm p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl text-left border border-slate-100 dark:border-slate-800 relative">
-                <Library className="absolute top-5 right-5 w-5 h-5 text-slate-300 dark:text-slate-600" />
-                <p className="text-lg text-slate-700 dark:text-slate-300 font-medium mb-2 leading-relaxed pr-8">
-                  {formatTurkishText(word.ex_tr, xRayMode, true)}
-                </p>
-                <p className="text-sm text-slate-500 dark:text-slate-500">
-                  {word.ex_de}
-                </p>
-              </div>
-
-            </div>
-          </div>
-        </div>
-
-        {/* Controls */}
-        <div className="mt-8 h-20 shrink-0">
-          {!isReview && !isFreePractice ? (
-            <button 
-              onClick={handleLearnNext}
-              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg flex justify-center items-center gap-2 transition-transform active:scale-95"
-            >
-              <Check className="w-6 h-6" /> Verstanden, weiter
-            </button>
-          ) : !isCardFlipped ? (
-            <button 
-              onClick={() => setIsCardFlipped(true)}
-              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg flex justify-center items-center transition-transform active:scale-95 shadow-lg shadow-indigo-200 dark:shadow-none"
-            >
-              Karte umdrehen
-            </button>
-          ) : isFreePractice ? (
-            <button 
-              onClick={handleFreePracticeNext}
-              className="w-full py-4 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-2xl font-bold text-lg flex justify-center items-center gap-2 transition-transform active:scale-95 shadow-lg"
-            >
-              Nächste Karte <ArrowRight className="w-5 h-5" />
-            </button>
-          ) : (
-            <div className="grid grid-cols-3 gap-3 animate-in fade-in slide-in-from-bottom-2">
-              <button onClick={() => handleReviewAnswer(0)} className="py-4 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-2xl font-bold transition-colors">
-                Schwer
-              </button>
-              <button onClick={() => handleReviewAnswer(1)} className="py-4 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-2xl font-bold transition-colors">
-                Gut
-              </button>
-              <button onClick={() => handleReviewAnswer(2)} className="py-4 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-2xl font-bold flex flex-col items-center justify-center leading-none transition-colors">
-                <span>Einfach</span>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 flex items-center justify-center p-4 md:p-8 font-sans selection:bg-indigo-200 overflow-hidden">
       <div className="w-full max-w-md mx-auto">
@@ -917,10 +600,50 @@ export default function App() {
           </div>
         ) : (
           <>
-            {view === 'dashboard' && renderDashboard()}
-            {view === 'deck_list' && renderDeckList()}
-            {view === 'grammar' && renderGrammar()}
-            {(view === 'learn' || view === 'review' || view === 'free_practice') && renderFlashcard()}
+            {view === 'dashboard' && (
+              <DashboardView
+                learningDirection={learningDirection}
+                setLearningDirection={setLearningDirection}
+                stats={stats}
+                startLearnSession={startLearnSession}
+                startReviewSession={startReviewSession}
+                setView={setView}
+                setActiveGrammarTopic={setActiveGrammarTopic}
+                xRayMode={xRayMode}
+                setXRayMode={setXRayMode}
+              />
+            )}
+            {view === 'deck_list' && (
+              <DeckListView
+                decks={decks}
+                startFreePractice={startFreePractice}
+                setView={setView}
+              />
+            )}
+            {view === 'grammar' && (
+              <GrammarView
+                activeGrammarTopic={activeGrammarTopic}
+                setActiveGrammarTopic={setActiveGrammarTopic}
+                setView={setView}
+                grammarTopics={GRAMMAR_TOPICS}
+              />
+            )}
+            {(view === 'learn' || view === 'review' || view === 'free_practice') && (
+              <FlashcardView
+                view={view}
+                currentQueue={currentQueue}
+                currentIndex={currentIndex}
+                isCardFlipped={isCardFlipped}
+                setIsCardFlipped={setIsCardFlipped}
+                learningDirection={learningDirection}
+                xRayMode={xRayMode}
+                handleLearnNext={handleLearnNext}
+                handleFreePracticeNext={handleFreePracticeNext}
+                handleReviewAnswer={handleReviewAnswer}
+                setView={setView}
+                formatTurkishText={formatTurkishText}
+              />
+            )}
           </>
         )}
 
