@@ -113,9 +113,10 @@ export default function FlashcardView({
           <div className="grid grid-cols-3 gap-3 animate-in fade-in slide-in-from-bottom-2">
             <button
               onClick={() => handleReviewAnswer(0)}
-              className="py-4 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-2xl font-bold transition-colors"
+              className="py-4 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-2xl font-bold transition-colors flex flex-col items-center justify-center leading-tight"
             >
-              Schwer
+              <span>Schwer</span>
+              <span className="text-[10px] font-normal opacity-80 mt-1">Sofort</span>
             </button>
             <button
               onClick={() => handleReviewAnswer(1)}

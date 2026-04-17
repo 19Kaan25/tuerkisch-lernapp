@@ -8,14 +8,18 @@ import {
   ArrowRight,
   Layers,
   GraduationCap,
+  MessageSquare
 } from 'lucide-react';
 
 export default function DashboardView({
   learningDirection,
   setLearningDirection,
   stats,
+  sentenceStats,
   startLearnSession,
   startReviewSession,
+  startSentenceLearnSession,
+  startSentenceReviewSession,
   setView,
   setActiveGrammarTopic,
   startGrammarPractice,
@@ -47,7 +51,7 @@ export default function DashboardView({
           {learningDirection === 'tr-de' ? 'Lernfortschritt (Passiv)' : 'Lernfortschritt (Aktiv)'}
         </h2>
         <p className="text-slate-500 dark:text-slate-400 text-center mt-2 max-w-sm">
-          Lerne die häufigsten türkischen Wörter systematisch und effizient.
+          Lerne die häufigsten türkischen Wörter und Sätze systematisch und effizient.
         </p>
       </div>
 
@@ -67,7 +71,10 @@ export default function DashboardView({
         </div>
       </div>
 
-      <div className="space-y-3 mt-8">
+      <div className="space-y-4">
+        <h3 className="font-bold text-xl text-slate-800 dark:text-white px-2 flex items-center gap-2">
+          Vokabeln
+        </h3>
         <button
           onClick={startLearnSession}
           disabled={stats.newWords === 0}
@@ -98,16 +105,80 @@ export default function DashboardView({
           <ArrowRight className="w-5 h-5 text-slate-400" />
         </button>
 
+        <h3 className="font-bold text-xl text-slate-800 dark:text-white px-2 mt-8 flex items-center gap-2">
+          Sätze & Kontext
+        </h3>
+
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center">
+            <span className="text-3xl font-black text-slate-800 dark:text-white">{sentenceStats?.total || 0}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">Gesamt</span>
+          </div>
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center">
+            <span className="text-3xl font-black text-teal-600 dark:text-teal-400">{sentenceStats?.learned || 0}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">Gelernt</span>
+          </div>
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center relative">
+            {(sentenceStats?.due || 0) > 0 && <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>}
+            <span className={`text-3xl font-black ${(sentenceStats?.due || 0) > 0 ? 'text-red-500' : 'text-emerald-500'}`}>{sentenceStats?.due || 0}</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">Fällig</span>
+          </div>
+        </div>
+
+        <button
+          onClick={startSentenceLearnSession}
+          disabled={sentenceStats?.newSentences === 0}
+          className="w-full flex items-center justify-between p-4 bg-teal-600 hover:bg-teal-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-2xl transition-all shadow-md shadow-teal-200 dark:shadow-none"
+        >
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-6 h-6" />
+            <div className="text-left">
+              <div className="font-bold">Neue Sätze lernen</div>
+              <div className="text-teal-200 text-sm">{sentenceStats?.newSentences || 0} verfügbar</div>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5" />
+        </button>
+
+        <button
+          onClick={startSentenceReviewSession}
+          disabled={sentenceStats?.due === 0}
+          className="w-full flex items-center justify-between p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-800 dark:text-white rounded-2xl transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <RotateCcw className={`w-6 h-6 ${(sentenceStats?.due || 0) > 0 ? 'text-red-500' : 'text-slate-400'}`} />
+            <div className="text-left">
+              <div className="font-bold">Sätze wiederholen</div>
+              <div className="text-slate-500 text-sm">{sentenceStats?.due || 0} Sätze warten</div>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5 text-slate-400" />
+        </button>
+
         <div className="grid grid-cols-2 gap-3 pt-2">
+          <button
+            onClick={() => setView('sentences')}
+            className="flex flex-col items-center justify-center p-4 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl transition-all border border-transparent dark:border-slate-700 text-center"
+          >
+            <MessageSquare className="w-6 h-6 text-slate-500 mb-2" />
+            <div className="font-bold text-sm">Übersicht & Themen</div>
+            <div className="text-slate-500 text-xs mt-1">Sätze explorieren</div>
+          </button>
+
           <button
             onClick={() => setView('deck_list')}
             className="flex flex-col items-center justify-center p-4 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl transition-all border border-transparent dark:border-slate-700 text-center"
           >
             <Layers className="w-6 h-6 text-slate-500 mb-2" />
-            <div className="font-bold text-sm">Decks & Üben</div>
+            <div className="font-bold text-sm">Vokabel-Decks</div>
             <div className="text-slate-500 text-xs mt-1">Ohne Algorithmus</div>
           </button>
+        </div>
 
+        <h3 className="font-bold text-xl text-slate-800 dark:text-white px-2 mt-8 flex items-center gap-2">
+          Grammatik
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => {
               setActiveGrammarTopic(null);
@@ -116,24 +187,24 @@ export default function DashboardView({
             className="flex flex-col items-center justify-center p-4 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-2xl transition-all border border-transparent dark:border-amber-800/50 text-center"
           >
             <GraduationCap className="w-6 h-6 text-amber-500 mb-2" />
-            <div className="font-bold text-sm">Grammatik</div>
-            <div className="text-amber-600/70 dark:text-amber-500/70 text-xs mt-1">A1 bis C1 Regeln</div>
+            <div className="font-bold text-sm">Regeln & Theorie</div>
+            <div className="text-amber-600/70 dark:text-amber-500/70 text-xs mt-1">A1 bis C1 Konzepte</div>
+          </button>
+
+          <button
+            onClick={() => startGrammarPractice()}
+            className="w-full flex items-center justify-between p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-indigo-200 dark:border-indigo-800/50 text-slate-800 dark:text-white rounded-2xl transition-all"
+          >
+            <div className="flex items-center gap-3 text-left">
+              <GraduationCap className="w-5 h-5 text-indigo-500" />
+              <div>
+                <div className="font-bold">Grammatik direkt üben</div>
+                <div className="text-slate-500 text-sm">Quiz zu allen Teilbereichen starten</div>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-slate-400" />
           </button>
         </div>
-
-        <button
-          onClick={() => startGrammarPractice()}
-          className="w-full flex items-center justify-between p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border border-indigo-200 dark:border-indigo-800/50 text-slate-800 dark:text-white rounded-2xl transition-all"
-        >
-          <div className="flex items-center gap-3 text-left">
-            <GraduationCap className="w-5 h-5 text-indigo-500" />
-            <div>
-              <div className="font-bold">Grammatik direkt üben</div>
-              <div className="text-slate-500 text-sm">Quiz zu allen Teilbereichen starten</div>
-            </div>
-          </div>
-          <ArrowRight className="w-5 h-5 text-slate-400" />
-        </button>
       </div>
 
       <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
@@ -159,5 +230,3 @@ export default function DashboardView({
     </div>
   );
 }
-
-

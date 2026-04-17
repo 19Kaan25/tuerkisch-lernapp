@@ -5,6 +5,9 @@ import DeckListView from './components/DeckListView';
 import GrammarView from './components/GrammarView';
 import FlashcardView from './components/FlashcardView';
 import GrammarPracticeView from './components/GrammarPracticeView';
+import SentenceListView from './components/SentenceListView';
+import SentencePracticeView from './components/SentencePracticeView';
+import Papa from 'papaparse';
 import { GRAMMAR_PRACTICE_SECTIONS } from './data/grammarPracticeBank';
 import { GRAMMAR_TOPICS } from './data/grammarTheoryTopics';
 
@@ -409,11 +412,17 @@ export default function App() {
   const LEARNING_STEPS_MS = [10 * 60 * 1000, 24 * 60 * 60 * 1000, 3 * 24 * 60 * 60 * 1000];
 
   const [vocab, setVocab] = useState([]);
+  const [sentences, setSentences] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [view, setView] = useState('dashboard'); // 'dashboard', 'learn', 'review', 'deck_list', 'free_practice', 'grammar', 'grammar_practice'
+  const [view, setView] = useState('dashboard'); // 'dashboard', 'learn', 'review', 'deck_list', 'free_practice', 'grammar', 'grammar_practice', 'sentences', 'sentence_practice'
   
   const [progress, setProgress] = useState(() => {
     const savedProgress = localStorage.getItem('turkishVocabProgress');
+    return savedProgress ? JSON.parse(savedProgress) : {};
+  });
+
+  const [sentenceProgress, setSentenceProgress] = useState(() => {
+    const savedProgress = localStorage.getItem('turkishSentenceProgressV1');
     return savedProgress ? JSON.parse(savedProgress) : {};
   });
 
@@ -451,6 +460,24 @@ export default function App() {
         console.error("Fehler beim Laden der Vokabeln:", err);
         setIsLoading(false);
       });
+
+    fetch('/sentences_tr_de.csv')
+      .then(response => response.text())
+      .then(csvText => {
+        Papa.parse(csvText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (results) => {
+            const parsedSentences = results.data.filter(row => row.id && row.tr_sentence && row.de_translation);
+            setSentences(parsedSentences);
+            console.log(`Geladene Sätze: ${parsedSentences.length} von ${results.data.length}`);
+          },
+          error: (error) => {
+            console.error("PapaParse Fehler:", error);
+          }
+        });
+      })
+      .catch(err => console.error("Fehler beim Laden der Sätze:", err));
   }, []);
 
   const DECK_SIZE = 20; 
@@ -510,7 +537,200 @@ export default function App() {
     return { learned, due, newWords, total: vocab.length };
   }, [progress, vocab, getProgressKey]);
 
+  const sentenceStats = useMemo(() => {
+    const now = Date.now();
+    let learned = 0;
+    let due = 0;
+    
+    sentences.forEach(sentence => {
+      const pKey = getProgressKey(sentence.id);
+      const p = sentenceProgress[pKey];
+      if (p) {
+        learned++;
+        if (p.nextReview <= now) due++;
+      }
+    });
+
+    const newSentences = sentences.length - learned;
+    return { learned, due, newSentences, total: sentences.length };
+  }, [sentenceProgress, sentences, getProgressKey]);
+
   // --- ACTIONS ---
+  
+  const startSentenceLearnSession = () => {
+    const newCards = sentences.filter(s => !sentenceProgress[getProgressKey(s.id)]).slice(0, 5);
+    if (newCards.length > 0) {
+      setCurrentQueue(newCards);
+      setCurrentIndex(0);
+      setIsCardFlipped(false);
+      setView('sentence_learn');
+    }
+  };
+
+  const startSentenceReviewSession = () => {
+    const now = Date.now();
+    const dueCards = sentences.filter(s => {
+      const p = sentenceProgress[getProgressKey(s.id)];
+      return p && p.nextReview <= now;
+    }).sort((a, b) => {
+      const aData = sentenceProgress[getProgressKey(a.id)];
+      const bData = sentenceProgress[getProgressKey(b.id)];
+      return aData.nextReview - bData.nextReview;
+    });
+    
+    if (dueCards.length > 0) {
+      setCurrentQueue(dueCards);
+      setCurrentIndex(0);
+      setIsCardFlipped(false);
+      setView('sentence_review');
+    }
+  };
+
+  const startSentenceCategoryPractice = (categorySentences) => {
+    if (categorySentences.length > 0) {
+      setCurrentQueue(categorySentences);
+      setCurrentIndex(0);
+      setIsCardFlipped(false);
+      setView('sentence_practice');
+    }
+  };
+
+  const handleSentenceLearnNext = () => {
+    const s = currentQueue[currentIndex];
+    const pKey = getProgressKey(s.id);
+    
+    setSentenceProgress(prev => ({
+      ...prev,
+      [pKey]: {
+        interval: 0,
+        ease: 2.3,
+        learningStep: 0,
+        failedStreak: 0,
+        isLeech: false,
+        nextReview: Date.now(),
+      }
+    }));
+
+    if (currentIndex < currentQueue.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setIsCardFlipped(false);
+    } else {
+      setView('dashboard');
+    }
+  };
+
+  const handleSentencePracticeNext = () => {
+    if (currentIndex < currentQueue.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setIsCardFlipped(false);
+    } else {
+      setView('sentences');
+    }
+  };
+
+  const handleSentenceReviewAnswer = (quality) => {
+    const s = currentQueue[currentIndex];
+    const pKey = getProgressKey(s.id);
+    const currentData = sentenceProgress[pKey] || {
+      interval: 0,
+      ease: 2.3,
+      learningStep: null,
+      failedStreak: 0,
+      isLeech: false,
+    };
+    let newInterval = currentData.interval;
+    let newEase = currentData.ease;
+    const failedStreak = currentData.failedStreak || 0;
+
+    if (currentData.learningStep !== null && currentData.learningStep !== undefined) {
+      if (quality === 0) {
+        const adjustedEase = Math.max(MIN_EASE, newEase - 0.2);
+        setSentenceProgress(prev => ({
+          ...prev,
+          [pKey]: {
+            ...currentData,
+            interval: 0,
+            ease: adjustedEase,
+            learningStep: 0,
+            failedStreak: failedStreak + 1,
+            isLeech: failedStreak + 1 >= LEECH_THRESHOLD,
+            nextReview: 0,
+          }
+        }));
+      } else {
+        const nextStep = currentData.learningStep + 1;
+        const nextFailedStreak = quality === 2 ? 0 : failedStreak;
+
+        if (nextStep < LEARNING_STEPS_MS.length) {
+          setSentenceProgress(prev => ({
+            ...prev,
+            [pKey]: {
+              ...currentData,
+              ease: quality === 2 ? Math.min(MAX_EASE, newEase + 0.05) : newEase,
+              learningStep: nextStep,
+              failedStreak: nextFailedStreak,
+              isLeech: false,
+              nextReview: Date.now() + LEARNING_STEPS_MS[nextStep],
+            }
+          }));
+        } else {
+          const graduatedInterval = quality === 2 ? 4 : 3;
+          setSentenceProgress(prev => ({
+            ...prev,
+            [pKey]: {
+              ...currentData,
+              interval: graduatedInterval,
+              ease: quality === 2 ? Math.min(MAX_EASE, newEase + 0.1) : newEase,
+              learningStep: null,
+              failedStreak: nextFailedStreak,
+              isLeech: false,
+              nextReview: Date.now() + (graduatedInterval * 24 * 60 * 60 * 1000),
+            }
+          }));
+        }
+      }
+
+      if (currentIndex < currentQueue.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+        setIsCardFlipped(false);
+      } else {
+        setView('dashboard');
+      }
+      return;
+    }
+
+    if (quality === 0) {
+      newInterval = 0;
+      newEase = Math.max(MIN_EASE, newEase - 0.2);
+    } else if (quality === 1) {
+      newInterval = newInterval === 0 ? 1 : newInterval * 2;
+      newEase = Math.max(MIN_EASE, newEase - 0.02);
+    } else if (quality === 2) {
+      newInterval = newInterval === 0 ? 3 : Math.ceil(newInterval * newEase);
+      newEase = Math.min(MAX_EASE, newEase + 0.15);
+    }
+
+    const nextReview = Date.now() + (newInterval * 24 * 60 * 60 * 1000); 
+    
+    setSentenceProgress(prev => ({
+      ...prev,
+      [pKey]: {
+        ...currentData,
+        interval: newInterval,
+        ease: newEase,
+        failedStreak: quality === 0 ? failedStreak + 1 : 0,
+        isLeech: quality === 0 ? failedStreak + 1 >= LEECH_THRESHOLD : false,
+        nextReview: quality === 0 ? 0 : nextReview,
+      }
+    }));
+
+    if (currentIndex < currentQueue.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setIsCardFlipped(false);
+    } else {
+      setView('dashboard');
+    }
+  };
 
   const startLearnSession = () => {
     const newCards = vocab.filter(word => !progress[getProgressKey(word.id)]).slice(0, 5);
@@ -650,7 +870,7 @@ export default function App() {
             learningStep: 0,
             failedStreak: failedStreak + 1,
             isLeech: failedStreak + 1 >= LEECH_THRESHOLD,
-            nextReview: Date.now() + LEARNING_STEPS_MS[0],
+            nextReview: 0,
           }
         }));
       } else {
@@ -716,7 +936,7 @@ export default function App() {
         ease: newEase,
         failedStreak: quality === 0 ? failedStreak + 1 : 0,
         isLeech: quality === 0 ? failedStreak + 1 >= LEECH_THRESHOLD : false,
-        nextReview: quality === 0 ? Date.now() : nextReview,
+        nextReview: quality === 0 ? 0 : nextReview,
       }
     }));
 
@@ -746,8 +966,11 @@ export default function App() {
                 learningDirection={learningDirection}
                 setLearningDirection={setLearningDirection}
                 stats={stats}
+                sentenceStats={sentenceStats}
                 startLearnSession={startLearnSession}
                 startReviewSession={startReviewSession}
+                startSentenceLearnSession={startSentenceLearnSession}
+                startSentenceReviewSession={startSentenceReviewSession}
                 setView={setView}
                 setActiveGrammarTopic={setActiveGrammarTopic}
                 startGrammarPractice={startGrammarPractice}
@@ -781,6 +1004,31 @@ export default function App() {
                 onOpenTheoryForSection={openGrammarTheoryFromPractice}
               />
             )}
+            {view === 'sentences' && (
+              <SentenceListView
+                sentences={sentences}
+                startSentenceCategoryPractice={startSentenceCategoryPractice}
+                setView={setView}
+              />
+            )}
+            {(view === 'sentence_learn' || view === 'sentence_review' || view === 'sentence_practice') && (
+              <SentencePracticeView
+                view={view}
+                currentQueue={currentQueue}
+                currentIndex={currentIndex}
+                sentenceProgress={sentenceProgress}
+                getProgressKey={getProgressKey}
+                isCardFlipped={isCardFlipped}
+                setIsCardFlipped={setIsCardFlipped}
+                learningDirection={learningDirection}
+                xRayMode={xRayMode}
+                handleLearnNext={handleSentenceLearnNext}
+                handlePracticeNext={handleSentencePracticeNext}
+                handleReviewAnswer={handleSentenceReviewAnswer}
+                setView={setView}
+                formatTurkishText={formatTurkishText}
+              />
+            )}
             {(view === 'learn' || view === 'review' || view === 'free_practice') && (
               <FlashcardView
                 view={view}
@@ -806,3 +1054,4 @@ export default function App() {
     </div>
   );
 }
+
