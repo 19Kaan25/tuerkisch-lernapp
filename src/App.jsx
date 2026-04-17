@@ -1,0 +1,930 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { BrainCircuit, BookOpen, RotateCcw, Eye, EyeOff, ArrowRight, Library, Zap, Check, X, Layers, Play, GraduationCap, ChevronLeft } from 'lucide-react';
+
+// --- GRAMMATIK DATEN (A1 bis C1) ---
+const GRAMMAR_TOPICS = [
+  {
+    id: 'vokalharmonie',
+    title: '1. Die Vokalharmonie',
+    subtitle: 'Das wichtigste Gesetz der türkischen Sprache (A1)',
+    content: (
+      <div className="space-y-6 text-slate-700 dark:text-slate-300">
+        <p>Im Türkischen passen sich alle Endungen (Suffixe) an den letzten Vokal des Wortstamms an. Das macht die Sprache so "melodisch". Es gibt zwei Hauptregeln:</p>
+        
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <h4 className="font-bold text-indigo-600 dark:text-indigo-400 mb-3 text-lg">A. Die Große Vokalharmonie (2-Wege)</h4>
+          <p className="text-sm mb-4">Wird bei vielen einfachen Endungen genutzt, z.B. beim Plural (-lar/-ler) oder dem Lokativ (-da/-de "in/auf").</p>
+          <ul className="space-y-3 text-sm">
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-orange-500 w-24 shrink-0">a, ı, o, u</span> 
+              <span>➔ Suffix mit <strong className="text-orange-500">A</strong> <br/><span className="text-slate-500">Beispiel: araba + l<strong className="text-orange-500">a</strong>r (Autos)</span></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-cyan-500 w-24 shrink-0">e, i, ö, ü</span> 
+              <span>➔ Suffix mit <strong className="text-cyan-500">E</strong> <br/><span className="text-slate-500">Beispiel: ev + l<strong className="text-cyan-500">e</strong>r (Häuser)</span></span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <h4 className="font-bold text-indigo-600 dark:text-indigo-400 mb-3 text-lg">B. Die Kleine Vokalharmonie (4-Wege)</h4>
+          <p className="text-sm mb-4">Wird z.B. bei Fragepartikeln (mı/mi/mu/mü) oder Besitzanzeigern genutzt.</p>
+          <ul className="space-y-3 text-sm">
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-orange-500 w-24 shrink-0">a, ı</span> 
+              <span>➔ Suffix mit <strong className="text-orange-500">I</strong> <br/><span className="text-slate-500">Beispiel: kapı m<strong className="text-orange-500">ı</strong>? (Ist es die Tür?)</span></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-cyan-500 w-24 shrink-0">e, i</span> 
+              <span>➔ Suffix mit <strong className="text-cyan-500">İ</strong> <br/><span className="text-slate-500">Beispiel: ev m<strong className="text-cyan-500">i</strong>? (Ist es das Haus?)</span></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-orange-500 w-24 shrink-0">o, u</span> 
+              <span>➔ Suffix mit <strong className="text-orange-500">U</strong> <br/><span className="text-slate-500">Beispiel: doktor m<strong className="text-orange-500">u</strong>? (Ist er Arzt?)</span></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="font-bold text-cyan-500 w-24 shrink-0">ö, ü</span> 
+              <span>➔ Suffix mit <strong className="text-cyan-500">Ü</strong> <br/><span className="text-slate-500">Beispiel: kötü m<strong className="text-cyan-500">ü</strong>? (Ist es schlecht?)</span></span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'konsonanten',
+    title: '2. Konsonanten-Erweichung',
+    subtitle: 'Die "KETÇAP"-Regel (A1)',
+    content: (
+      <div className="space-y-6 text-slate-700 dark:text-slate-300">
+        <p>Wenn ein türkisches Wort auf einen bestimmten harten Konsonanten endet und eine Endung folgt, die mit einem Vokal beginnt, "erweicht" dieser harte Konsonant.</p>
+        
+        <div className="bg-indigo-50 dark:bg-indigo-900/20 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-800/50">
+          <h4 className="font-bold text-indigo-700 dark:text-indigo-300 mb-4">Die KETÇAP Regel:</h4>
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm">
+              <span className="font-black text-xl text-slate-800 dark:text-white">K ➔ Ğ / G</span>
+              <p className="text-sm text-slate-500 mt-2">köpe<strong className="text-indigo-500">k</strong> ➔ köpe<strong className="text-indigo-500">ğ</strong>i</p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm">
+              <span className="font-black text-xl text-slate-800 dark:text-white">T ➔ D</span>
+              <p className="text-sm text-slate-500 mt-2">kağı<strong className="text-indigo-500">t</strong> ➔ kağı<strong className="text-indigo-500">d</strong>ı</p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm">
+              <span className="font-black text-xl text-slate-800 dark:text-white">Ç ➔ C</span>
+              <p className="text-sm text-slate-500 mt-2">ağa<strong className="text-indigo-500">ç</strong> ➔ ağa<strong className="text-indigo-500">c</strong>ı</p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 p-3 rounded-xl shadow-sm">
+              <span className="font-black text-xl text-slate-800 dark:text-white">P ➔ B</span>
+              <p className="text-sm text-slate-500 mt-2">kita<strong className="text-indigo-500">p</strong> ➔ kita<strong className="text-indigo-500">b</strong>ı</p>
+            </div>
+          </div>
+        </div>
+        <p className="text-sm italic">Hinweis: Eigennamen (wie Städte) werden in der Schrift nicht erweicht. Man trennt das Suffix ab: "Ahmet'e" (Zu Ahmet) - gesprochen wird es aber weich.</p>
+      </div>
+    )
+  },
+  {
+    id: 'faelle',
+    title: '3. Die wichtigsten Fälle',
+    subtitle: 'Wo? Wohin? Woher? Wen? (A1/A2)',
+    content: (
+      <div className="space-y-6 text-slate-700 dark:text-slate-300">
+        <p>Das Türkische nutzt keine Präpositionen (wie in, auf, zu, von), sondern hängt diese Informationen einfach hinten an das Wort an.</p>
+        
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <h4 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400 px-2 py-1 rounded text-xs">Lokativ</span> Wo?
+            </h4>
+            <p className="text-sm mt-2 font-medium">Endung: -da / -de / -ta / -te</p>
+            <p className="text-sm text-slate-500 mt-1">ev<strong className="text-emerald-500">de</strong> (im Haus), araba<strong className="text-emerald-500">da</strong> (im Auto)</p>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <h4 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span className="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400 px-2 py-1 rounded text-xs">Dativ</span> Wohin? / Zu wem?
+            </h4>
+            <p className="text-sm mt-2 font-medium">Endung: -a / -e / -ya / -ye</p>
+            <p className="text-sm text-slate-500 mt-1">ev<strong className="text-blue-500">e</strong> (nach Hause), Ali'<strong className="text-blue-500">ye</strong> (zu Ali)</p>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <h4 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span className="bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400 px-2 py-1 rounded text-xs">Ablativ</span> Woher? / Von wem?
+            </h4>
+            <p className="text-sm mt-2 font-medium">Endung: -dan / -den / -tan / -ten</p>
+            <p className="text-sm text-slate-500 mt-1">ev<strong className="text-red-500">den</strong> (aus dem Haus), okul<strong className="text-red-500">dan</strong> (von der Schule)</p>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
+            <h4 className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
+              <span className="bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400 px-2 py-1 rounded text-xs">Akkusativ</span> Wen? / Was? (bestimmt)
+            </h4>
+            <p className="text-sm mt-2 font-medium">Endung: -ı / -i / -u / -ü</p>
+            <p className="text-sm text-slate-500 mt-1">kitab<strong className="text-amber-500">ı</strong> okuyorum (ich lese <i>das (bestimmte)</i> Buch)</p>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'zeiten',
+    title: '4. Die vier wichtigsten Zeiten',
+    subtitle: 'Präsens, Aorist, Vergangenheit, Zukunft (A2/B1)',
+    content: (
+      <div className="space-y-6 text-slate-700 dark:text-slate-300">
+        <p>Im Türkischen wird die Zeit direkt an den Verbstamm gehängt, danach folgt die Personalendung (ich, du, er...).</p>
+        
+        <div className="grid gap-4">
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border-l-4 border-l-blue-500">
+            <h4 className="font-bold">1. Şimdiki Zaman (Präsens / Jetzt)</h4>
+            <p className="text-sm mt-1">Sagt aus, was <i>genau in diesem Moment</i> passiert.</p>
+            <div className="mt-2 bg-slate-50 dark:bg-slate-900/50 p-2 rounded">
+              <code className="text-blue-600 dark:text-blue-400 text-sm">gel-iyor-um</code> <span className="text-sm text-slate-500">(ich komme gerade)</span>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border-l-4 border-l-emerald-500">
+            <h4 className="font-bold">2. Geniş Zaman (Aorist / Allgemein)</h4>
+            <p className="text-sm mt-1">Gewohnheiten, Fakten oder Bitten ("Würdest du...?").</p>
+            <div className="mt-2 bg-slate-50 dark:bg-slate-900/50 p-2 rounded">
+              <code className="text-emerald-600 dark:text-emerald-400 text-sm">gel-ir-im</code> <span className="text-sm text-slate-500">(ich komme gewöhnlich / ich werde kommen)</span>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border-l-4 border-l-orange-500">
+            <h4 className="font-bold">3. Geçmiş Zaman (Vergangenheit)</h4>
+            <p className="text-sm mt-1"><strong>-di</strong> (Miterlebtes) vs. <strong>-miş</strong> (Erzähltes / Hörensagen).</p>
+            <div className="mt-2 bg-slate-50 dark:bg-slate-900/50 p-2 rounded space-y-1">
+              <div><code className="text-orange-600 dark:text-orange-400 text-sm">gel-di-m</code> <span className="text-sm text-slate-500">(ich bin gekommen - sicher)</span></div>
+              <div><code className="text-orange-600 dark:text-orange-400 text-sm">gel-miş-im</code> <span className="text-sm text-slate-500">(ich sei gekommen / habe angeblich...)</span></div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border-l-4 border-l-purple-500">
+            <h4 className="font-bold">4. Gelecek Zaman (Zukunft)</h4>
+            <p className="text-sm mt-1">Geplante Handlungen in der Zukunft.</p>
+            <div className="mt-2 bg-slate-50 dark:bg-slate-900/50 p-2 rounded">
+              <code className="text-purple-600 dark:text-purple-400 text-sm">gel-ecek-im ➔ geleceğim</code> <span className="text-sm text-slate-500">(ich werde kommen)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'izafet',
+    title: '5. Besitz & Genitiv (Das Izafet)',
+    subtitle: 'Die Autotür, Mein Haus (B1)',
+    content: (
+      <div className="space-y-6 text-slate-700 dark:text-slate-300">
+        <p>Um Besitz oder Zugehörigkeit ("das Haus des Lehrers", "die Autotür") auszudrücken, müssen im Türkischen <strong>beide</strong> Nomen eine Endung erhalten.</p>
+        
+        <div className="bg-amber-50 dark:bg-amber-900/20 p-5 rounded-2xl border border-amber-100 dark:border-amber-800/50">
+          <h4 className="font-bold text-amber-700 dark:text-amber-300 mb-2">Die Formel:</h4>
+          <p className="font-mono text-center text-lg my-4">
+            Besitzer<strong className="text-amber-600">-(n)in</strong> + Besitz<strong className="text-amber-600">-(s)i</strong>
+          </p>
+          
+          <ul className="space-y-4">
+            <li className="bg-white dark:bg-slate-800 p-3 rounded shadow-sm">
+              <div className="font-bold">Evin kapısı</div>
+              <div className="text-sm text-slate-500">ev<strong className="text-amber-500">-in</strong> (des Hauses) kapı<strong className="text-amber-500">-sı</strong> (seine Tür) ➔ Die Haustür</div>
+            </li>
+            <li className="bg-white dark:bg-slate-800 p-3 rounded shadow-sm">
+              <div className="font-bold">Öğretmenin arabası</div>
+              <div className="text-sm text-slate-500">öğretmen<strong className="text-amber-500">-in</strong> (des Lehrers) araba<strong className="text-amber-500">-sı</strong> (sein Auto) ➔ Das Auto des Lehrers</div>
+            </li>
+          </ul>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'relativsaetze',
+    title: '6. Relativsätze (Partizipien)',
+    subtitle: 'Der Mann, der liest / Das Buch, das ich lese (B2)',
+    content: (
+      <div className="space-y-6 text-slate-700 dark:text-slate-300">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-400 px-2 py-1 rounded text-xs font-bold tracking-widest uppercase">C1 Relevant</span>
+        </div>
+        <p>Im Türkischen gibt es keine Wörter wie "der, die, das" oder "welcher". Relativsätze werden stattdessen in <strong>Adjektive (Partizipien)</strong> umgewandelt und vor das Nomen gestellt.</p>
+
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border-2 border-rose-100 dark:border-rose-900/50">
+            <h4 className="font-bold text-rose-600 dark:text-rose-400 text-lg">1. Subjekt-Partizip (-an / -en)</h4>
+            <p className="text-sm mt-1 mb-3">Wird benutzt, wenn das Bezugswort die Aktion <strong>selbst ausführt</strong> (Aktiv).</p>
+            <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded">
+              <div className="font-mono">Gelen adam</div>
+              <div className="text-sm text-slate-500">Gel<strong className="text-rose-500">-en</strong> (kommend) adam (Mann) ➔ Der Mann, der kommt.</div>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded mt-2">
+              <div className="font-mono">Okuyan çocuk</div>
+              <div className="text-sm text-slate-500">Oku<strong className="text-rose-500">-yan</strong> (lesend) çocuk (Kind) ➔ Das Kind, das liest.</div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border-2 border-indigo-100 dark:border-indigo-900/50">
+            <h4 className="font-bold text-indigo-600 dark:text-indigo-400 text-lg">2. Objekt-Partizip (-dık / -diği)</h4>
+            <p className="text-sm mt-1 mb-3">Wird benutzt, wenn <strong>mit dem Bezugswort etwas gemacht wird</strong> (Passiv / Ziel der Handlung). Hierbei muss angehängt werden, <i>wer</i> es macht (Besitzendung).</p>
+            <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded">
+              <div className="font-mono">Okuduğum kitap</div>
+              <div className="text-sm text-slate-500">Oku<strong className="text-indigo-500">-duğ-um</strong> (mein Gelesenes) kitap ➔ Das Buch, das ich lese.</div>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded mt-2">
+              <div className="font-mono">Gittiğimiz restoran</div>
+              <div className="text-sm text-slate-500">Git<strong className="text-indigo-500">-tiğ-imiz</strong> (unser Gegangenes) restoran ➔ Das Restaurant, zu dem wir gehen.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'adverbialsaetze',
+    title: '7. Komplexe Satzverbindungen',
+    subtitle: 'Gerundien (Adverbialsätze) (C1)',
+    content: (
+      <div className="space-y-6 text-slate-700 dark:text-slate-300">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400 px-2 py-1 rounded text-xs font-bold tracking-widest uppercase">C1 Kernkompetenz</span>
+        </div>
+        <p>Um flüssiges C1-Türkisch zu sprechen, verbindet man Sätze nicht mit "und" oder "weil", sondern hängt Zeit- oder Art-Suffixe an den Verbstamm (sogenannte Gerundien / Zarf-Fiiller).</p>
+        
+        <table className="w-full text-left border-collapse text-sm">
+          <thead>
+            <tr className="border-b-2 border-slate-200 dark:border-slate-700">
+              <th className="py-2">Suffix</th>
+              <th className="py-2">Bedeutung</th>
+              <th className="py-2">Beispiel</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tr>
+              <td className="py-3 font-bold text-purple-600 dark:text-purple-400">-erek / -arak</td>
+              <td className="py-3">indem / auf die Art</td>
+              <td className="py-3 text-slate-500">Gül<strong className="text-purple-500">erek</strong> geldi. <br/>(Er kam lachend.)</td>
+            </tr>
+            <tr>
+              <td className="py-3 font-bold text-purple-600 dark:text-purple-400">-ip / -ıp</td>
+              <td className="py-3">und danach (verbindet zwei Verben)</td>
+              <td className="py-3 text-slate-500">Gid<strong className="text-purple-500">ip</strong> döneceğim. <br/>(Ich gehe hin und komme zurück.)</td>
+            </tr>
+            <tr>
+              <td className="py-3 font-bold text-purple-600 dark:text-purple-400">-ince / -ınca</td>
+              <td className="py-3">sobald / als (zeitlich)</td>
+              <td className="py-3 text-slate-500">Eve var<strong className="text-purple-500">ınca</strong> ara. <br/>(Sobald du ankommst, ruf an.)</td>
+            </tr>
+            <tr>
+              <td className="py-3 font-bold text-purple-600 dark:text-purple-400">-ken</td>
+              <td className="py-3">während</td>
+              <td className="py-3 text-slate-500">Uyuyor<strong className="text-purple-500">ken</strong>... <br/>(Während ich schlief...)</td>
+            </tr>
+            <tr>
+              <td className="py-3 font-bold text-purple-600 dark:text-purple-400">-dikçe</td>
+              <td className="py-3">je mehr / solange</td>
+              <td className="py-3 text-slate-500">Çalış<strong className="text-purple-500">tıkça</strong> kazanırsın. <br/>(Je mehr du arbeitest, desto mehr gewinnst du.)</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    )
+  },
+  {
+    id: 'verbmodifikationen',
+    title: '8. Verb-Erweiterungen (Çatı)',
+    subtitle: 'Kausativ, Passiv, Reflexiv (C1)',
+    content: (
+      <div className="space-y-6 text-slate-700 dark:text-slate-300">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-400 px-2 py-1 rounded text-xs font-bold tracking-widest uppercase">C1 Relevant</span>
+        </div>
+        <p>Im Türkischen kann man die Bedeutung eines Verbs komplett verändern, indem man Silben zwischen den Stamm und die Zeitendung schiebt.</p>
+
+        <div className="grid gap-3">
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm">
+            <h4 className="font-bold text-teal-600 dark:text-teal-400">1. Kausativ (Veranlassungsform): -dir / -t</h4>
+            <p className="text-sm mt-1">Etwas machen <i>lassen</i> oder jemanden dazu bringen.</p>
+            <div className="text-sm mt-2 font-mono">yapmak (machen) ➔ yap<strong className="text-teal-500">tır</strong>mak (machen lassen)</div>
+            <div className="text-sm text-slate-500">Arabamı tamir et<strong className="text-teal-500">tir</strong>dim. (Ich habe mein Auto reparieren lassen.)</div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm">
+            <h4 className="font-bold text-teal-600 dark:text-teal-400">2. Passiv: -il / -in</h4>
+            <p className="text-sm mt-1">Die Handlung wird ausgeführt, ohne dass der Täter wichtig ist.</p>
+            <div className="text-sm mt-2 font-mono">görmek (sehen) ➔ gör<strong className="text-teal-500">ül</strong>mek (gesehen werden)</div>
+            <div className="text-sm text-slate-500">Ev temizlen<strong className="text-teal-500">di</strong>. (Das Haus wurde geputzt.)</div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm">
+            <h4 className="font-bold text-teal-600 dark:text-teal-400">3. Reziprok (Gegenseitig): -iş</h4>
+            <p className="text-sm mt-1">Etwas miteinander oder gegenseitig tun.</p>
+            <div className="text-sm mt-2 font-mono">görmek (sehen) ➔ gör<strong className="text-teal-500">üş</strong>mek (sich gegenseitig sehen / treffen)</div>
+          </div>
+        </div>
+      </div>
+    )
+  },
+  {
+    id: 'indirekterede',
+    title: '9. Die Indirekte Rede',
+    subtitle: 'Er sagte, dass... (Dolaylı Anlatım) (C1)',
+    content: (
+      <div className="space-y-6 text-slate-700 dark:text-slate-300">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-400 px-2 py-1 rounded text-xs font-bold tracking-widest uppercase">C1 Meisterklasse</span>
+        </div>
+        <p>Wenn du sagen willst "Er hat gesagt, DASS er kommt", nutzt du im Türkischen kein separates Wort für "dass". Du wandelst den Satz wieder in ein Partizip-Konstrukt (ähnlich wie bei den Relativsätzen) um.</p>
+        
+        <div className="bg-rose-50 dark:bg-rose-900/10 p-5 rounded-2xl border border-rose-100 dark:border-rose-900/30">
+          <h4 className="font-bold text-rose-700 dark:text-rose-400 mb-2">Die Formel:</h4>
+          <p className="text-sm">Man nutzt das Objekt-Partizip <strong>(-dik / -ecek)</strong> + <strong>Besitzendung</strong> + <strong>Akkusativ (-i)</strong>.</p>
+          
+          <div className="mt-4 space-y-4">
+            <div className="bg-white dark:bg-slate-800 p-3 rounded shadow-sm">
+              <div className="text-xs text-slate-400 mb-1">Direkt: "Ben hastayım." (Ich bin krank.)</div>
+              <div className="font-bold">Hasta ol<strong className="text-rose-500">duğ-un-u</strong> söyledi.</div>
+              <div className="text-sm text-slate-500">Er sagte, dass er krank ist. (Wörtlich: Er sagte <i>sein Kranksein</i>).</div>
+            </div>
+            
+            <div className="bg-white dark:bg-slate-800 p-3 rounded shadow-sm">
+              <div className="text-xs text-slate-400 mb-1">Direkt: "Yarın geleceğim." (Ich werde morgen kommen.)</div>
+              <div className="font-bold">Yarın gel<strong className="text-rose-500">eceğ-in-i</strong> belirtti.</div>
+              <div className="text-sm text-slate-500">Er gab an, dass er morgen kommen wird.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+];
+
+// --- HELPER FUNKTIONEN ---
+
+const formatTurkishText = (text, xRayOn, boldRoot = false) => {
+  if (!text) return null;
+  const parts = text.split(/(\{.*?\})/g);
+  
+  return parts.map((part, index) => {
+    const isRoot = part.startsWith('{') && part.endsWith('}');
+    const cleanText = isRoot ? part.slice(1, -1) : part;
+
+    const styledChars = cleanText.split('').map((char, charIndex) => {
+      const lower = char.toLowerCase();
+      const isLightVowel = ['e', 'i', 'ö', 'ü'].includes(lower);
+      const isDarkVowel = ['a', 'ı', 'o', 'u'].includes(lower);
+
+      if (xRayOn) {
+        if (isLightVowel) return <span key={charIndex} className="text-cyan-500 font-bold">{char}</span>;
+        if (isDarkVowel) return <span key={charIndex} className="text-orange-500 font-bold">{char}</span>;
+      }
+      return char;
+    });
+
+    if (isRoot && boldRoot) {
+      return (
+        <span key={index} className="border-b-2 border-indigo-400 pb-0.5 font-bold text-indigo-950 dark:text-indigo-100">
+          {styledChars}
+        </span>
+      );
+    }
+    return <span key={index}>{styledChars}</span>;
+  });
+};
+
+// --- HAUPT-APP KOMPONENTE ---
+export default function App() {
+  const [vocab, setVocab] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [view, setView] = useState('dashboard'); // 'dashboard', 'learn', 'review', 'deck_list', 'free_practice', 'grammar'
+  
+  const [progress, setProgress] = useState(() => {
+    const savedProgress = localStorage.getItem('turkishVocabProgress');
+    return savedProgress ? JSON.parse(savedProgress) : {};
+  });
+
+  const [xRayMode, setXRayMode] = useState(() => {
+    const savedXRay = localStorage.getItem('turkishVocabXRay');
+    return savedXRay ? JSON.parse(savedXRay) : false;
+  });
+
+  // NEU: Lernrichtung State
+  const [learningDirection, setLearningDirection] = useState(() => {
+    const savedDir = localStorage.getItem('turkishVocabDirection');
+    return savedDir || 'tr-de';
+  });
+  
+  const [currentQueue, setCurrentQueue] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isCardFlipped, setIsCardFlipped] = useState(false);
+  
+  // Grammar State
+  const [activeGrammarTopic, setActiveGrammarTopic] = useState(null);
+
+  useEffect(() => {
+    fetch('/vocab.json')
+      .then(res => res.json())
+      .then(data => {
+        setVocab(data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        console.error("Fehler beim Laden der Vokabeln:", err);
+        setIsLoading(false);
+      });
+  }, []);
+
+  const DECK_SIZE = 20; 
+  const decks = useMemo(() => {
+    const generatedDecks = [];
+    for (let i = 0; i < vocab.length; i += DECK_SIZE) {
+      const deckNum = Math.floor(i / DECK_SIZE) + 1;
+      const minId = i + 1;
+      const maxId = Math.min(i + DECK_SIZE, vocab.length);
+      generatedDecks.push({
+        id: deckNum,
+        title: `Deck ${deckNum}`,
+        subtitle: `Top ${minId}-${maxId} Wörter`,
+        minId,
+        maxId
+      });
+    }
+    return generatedDecks;
+  }, [vocab]);
+
+  useEffect(() => {
+    localStorage.setItem('turkishVocabProgress', JSON.stringify(progress));
+  }, [progress]);
+
+  useEffect(() => {
+    localStorage.setItem('turkishVocabXRay', JSON.stringify(xRayMode));
+  }, [xRayMode]);
+
+  useEffect(() => {
+    localStorage.setItem('turkishVocabDirection', learningDirection);
+  }, [learningDirection]);
+
+  // Hilfsfunktion: Gibt die korrekte ID für den Speicher-Fortschritt zurück
+  const getProgressKey = (id) => {
+    return learningDirection === 'de-tr' ? `${id}_rev` : String(id);
+  };
+
+  const stats = useMemo(() => {
+    const now = Date.now();
+    let learned = 0;
+    let due = 0;
+    
+    vocab.forEach(word => {
+      const pKey = getProgressKey(word.id);
+      const p = progress[pKey];
+      if (p) {
+        learned++;
+        if (p.nextReview <= now) due++;
+      }
+    });
+
+    const newWords = vocab.length - learned;
+    return { learned, due, newWords, total: vocab.length };
+  }, [progress, vocab, learningDirection]);
+
+  // --- ACTIONS ---
+
+  const startLearnSession = () => {
+    const newCards = vocab.filter(word => !progress[getProgressKey(word.id)]).slice(0, 5);
+    if (newCards.length > 0) {
+      setCurrentQueue(newCards);
+      setCurrentIndex(0);
+      setIsCardFlipped(false);
+      setView('learn');
+    }
+  };
+
+  const startReviewSession = () => {
+    const now = Date.now();
+    const dueCards = vocab.filter(word => {
+      const p = progress[getProgressKey(word.id)];
+      return p && p.nextReview <= now;
+    });
+    
+    if (dueCards.length > 0) {
+      setCurrentQueue(dueCards);
+      setCurrentIndex(0);
+      setIsCardFlipped(false);
+      setView('review');
+    }
+  };
+
+  const startFreePractice = (deck) => {
+    const deckCards = vocab.filter(word => word.id >= deck.minId && word.id <= deck.maxId);
+    if (deckCards.length > 0) {
+      setCurrentQueue(deckCards);
+      setCurrentIndex(0);
+      setIsCardFlipped(false);
+      setView('free_practice');
+    }
+  };
+
+  const handleLearnNext = () => {
+    const word = currentQueue[currentIndex];
+    const pKey = getProgressKey(word.id);
+    
+    setProgress(prev => ({
+      ...prev,
+      [pKey]: { interval: 0, ease: 2.5, nextReview: Date.now() }
+    }));
+
+    if (currentIndex < currentQueue.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setIsCardFlipped(false);
+    } else {
+      setView('dashboard');
+    }
+  };
+
+  const handleFreePracticeNext = () => {
+    if (currentIndex < currentQueue.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setIsCardFlipped(false);
+    } else {
+      setView('deck_list');
+    }
+  };
+
+  const handleReviewAnswer = (quality) => {
+    const word = currentQueue[currentIndex];
+    const pKey = getProgressKey(word.id);
+    const currentData = progress[pKey];
+    let newInterval = currentData.interval;
+    let newEase = currentData.ease;
+
+    if (quality === 0) {
+      newInterval = 0; 
+    } else if (quality === 1) {
+      newInterval = newInterval === 0 ? 1 : newInterval * 2;
+    } else if (quality === 2) {
+      newInterval = newInterval === 0 ? 3 : Math.ceil(newInterval * newEase);
+      newEase += 0.15; 
+    }
+
+    const nextReview = Date.now() + (newInterval * 24 * 60 * 60 * 1000); 
+    
+    setProgress(prev => ({
+      ...prev,
+      [pKey]: { interval: newInterval, ease: newEase, nextReview: quality === 0 ? Date.now() : nextReview }
+    }));
+
+    if (currentIndex < currentQueue.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setIsCardFlipped(false);
+    } else {
+      setView('dashboard');
+    }
+  };
+
+  // --- VIEWS ---
+
+  const renderDashboard = () => (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
+      
+      <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl flex items-center border border-slate-200 dark:border-slate-700 shadow-sm">
+        <button
+          onClick={() => setLearningDirection('tr-de')}
+          className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${learningDirection === 'tr-de' ? 'bg-white dark:bg-slate-700 shadow-md text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+        >
+          <span className="text-lg">🇹🇷 ➔ 🇩🇪</span>
+          <span className="hidden sm:inline">Verstehen</span>
+        </button>
+        <button
+          onClick={() => setLearningDirection('de-tr')}
+          className={`flex-1 py-3 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 ${learningDirection === 'de-tr' ? 'bg-white dark:bg-slate-700 shadow-md text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+        >
+          <span className="text-lg">🇩🇪 ➔ 🇹🇷</span>
+          <span className="hidden sm:inline">Sprechen</span>
+        </button>
+      </div>
+
+      <div className="flex flex-col items-center justify-center p-8 bg-indigo-50 dark:bg-indigo-900/20 rounded-3xl mb-8">
+        <BrainCircuit className="w-16 h-16 text-indigo-500 mb-4" />
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">
+          {learningDirection === 'tr-de' ? 'Lernfortschritt (Passiv)' : 'Lernfortschritt (Aktiv)'}
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 text-center mt-2 max-w-sm">
+          Lerne die häufigsten türkischen Wörter systematisch und effizient.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center">
+          <span className="text-3xl font-black text-slate-800 dark:text-white">{stats.total}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">Gesamt</span>
+        </div>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center">
+          <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{stats.learned}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">Gelernt</span>
+        </div>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center relative">
+          {stats.due > 0 && <span className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>}
+          <span className={`text-3xl font-black ${stats.due > 0 ? 'text-red-500' : 'text-emerald-500'}`}>{stats.due}</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mt-1">Fällig</span>
+        </div>
+      </div>
+
+      <div className="space-y-3 mt-8">
+        <button 
+          onClick={startLearnSession}
+          disabled={stats.newWords === 0}
+          className="w-full flex items-center justify-between p-4 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-2xl transition-all shadow-md shadow-indigo-200 dark:shadow-none"
+        >
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-6 h-6" />
+            <div className="text-left">
+              <div className="font-bold">Neue Wörter lernen</div>
+              <div className="text-indigo-200 text-sm">{stats.newWords} verfügbar</div>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5" />
+        </button>
+
+        <button 
+          onClick={startReviewSession}
+          disabled={stats.due === 0}
+          className="w-full flex items-center justify-between p-4 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-200 dark:border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-800 dark:text-white rounded-2xl transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <RotateCcw className={`w-6 h-6 ${stats.due > 0 ? 'text-red-500' : 'text-slate-400'}`} />
+            <div className="text-left">
+              <div className="font-bold">Wiederholen</div>
+              <div className="text-slate-500 text-sm">{stats.due} Karteikarten warten</div>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5 text-slate-400" />
+        </button>
+
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          <button 
+            onClick={() => setView('deck_list')}
+            className="flex flex-col items-center justify-center p-4 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl transition-all border border-transparent dark:border-slate-700 text-center"
+          >
+            <Layers className="w-6 h-6 text-slate-500 mb-2" />
+            <div className="font-bold text-sm">Decks & Üben</div>
+            <div className="text-slate-500 text-xs mt-1">Ohne Algorithmus</div>
+          </button>
+          
+          <button 
+            onClick={() => { setActiveGrammarTopic(null); setView('grammar'); }}
+            className="flex flex-col items-center justify-center p-4 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-2xl transition-all border border-transparent dark:border-amber-800/50 text-center"
+          >
+            <GraduationCap className="w-6 h-6 text-amber-500 mb-2" />
+            <div className="font-bold text-sm">Grammatik</div>
+            <div className="text-amber-600/70 dark:text-amber-500/70 text-xs mt-1">A1 bis C1 Regeln</div>
+          </button>
+        </div>
+      </div>
+
+      <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
+          <div className="flex items-center gap-3">
+            {xRayMode ? <Eye className="w-5 h-5 text-cyan-500" /> : <EyeOff className="w-5 h-5 text-slate-400" />}
+            <div>
+              <div className="font-semibold text-sm text-slate-800 dark:text-slate-200">X-Ray Vokalharmonie</div>
+              <div className="text-xs text-slate-500 flex gap-2 mt-1">
+                <span className="text-cyan-500 font-bold">Helle Vokale</span> • 
+                <span className="text-orange-500 font-bold">Dunkle Vokale</span>
+              </div>
+            </div>
+          </div>
+          <button 
+            onClick={() => setXRayMode(!xRayMode)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${xRayMode ? 'bg-cyan-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${xRayMode ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderDeckList = () => (
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
+      <div className="flex items-center mb-6">
+        <button onClick={() => setView('dashboard')} className="p-2 mr-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+          <ArrowRight className="w-5 h-5 rotate-180" />
+        </button>
+        <div>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-white">Decks verwalten</h2>
+          <p className="text-sm text-slate-500">Freies Üben ohne Fortschritts-Tracking</p>
+        </div>
+      </div>
+
+      <div className="space-y-3 h-[65vh] overflow-y-auto pr-2 pb-4">
+        {decks.map((deck) => (
+          <div key={deck.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <div className="font-bold text-slate-800 dark:text-white">{deck.title}</div>
+              <div className="text-sm text-slate-500">{deck.subtitle} ({deck.maxId - deck.minId + 1} Wörter)</div>
+            </div>
+            <button 
+              onClick={() => startFreePractice(deck)}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 font-semibold rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors w-full sm:w-auto justify-center"
+            >
+              <Play className="w-4 h-4 fill-current" />
+              Üben
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  const renderGrammar = () => {
+    if (activeGrammarTopic) {
+      const topic = GRAMMAR_TOPICS.find(t => t.id === activeGrammarTopic);
+      return (
+        <div className="animate-in fade-in slide-in-from-right-4 duration-300 flex flex-col h-[85vh]">
+          <div className="flex items-center mb-6 shrink-0">
+            <button onClick={() => setActiveGrammarTopic(null)} className="p-2 mr-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">{topic.title}</h2>
+          </div>
+          
+          <div className="flex-1 bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 overflow-y-auto">
+            {topic.content}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
+        <div className="flex items-center mb-6">
+          <button onClick={() => setView('dashboard')} className="p-2 mr-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+            <ArrowRight className="w-5 h-5 rotate-180" />
+          </button>
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Grammatik-Bibliothek</h2>
+            <p className="text-sm text-slate-500">Das Fundament von A1 bis C1</p>
+          </div>
+        </div>
+
+        <div className="space-y-3 h-[65vh] overflow-y-auto pr-2 pb-4">
+          {GRAMMAR_TOPICS.map((topic) => {
+            const isAdvanced = topic.subtitle.includes('C1') || topic.subtitle.includes('B2');
+            
+            return (
+              <button 
+                key={topic.id}
+                onClick={() => setActiveGrammarTopic(topic.id)}
+                className="w-full text-left bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-md transition-all flex items-center justify-between group relative overflow-hidden"
+              >
+                {isAdvanced && (
+                  <div className="absolute top-0 left-0 w-1.5 h-full bg-rose-500"></div>
+                )}
+                
+                <div className={isAdvanced ? "pl-2" : ""}>
+                  <div className="font-bold text-slate-800 dark:text-white text-lg flex items-center gap-2">
+                    {topic.title}
+                  </div>
+                  <div className="text-sm text-slate-500 mt-1">{topic.subtitle}</div>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-900/30 p-2 rounded-full group-hover:bg-amber-100 dark:group-hover:bg-amber-800/50 transition-colors shrink-0 ml-3">
+                  <ArrowRight className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const renderFlashcard = () => {
+    const isReview = view === 'review';
+    const isFreePractice = view === 'free_practice';
+    const word = currentQueue[currentIndex];
+    
+    if (!word) return null;
+
+    let headerText = 'Neu Lernen';
+    if (isReview) headerText = 'Wiederholung';
+    if (isFreePractice) headerText = 'Freies Üben';
+
+    const isRevealed = isCardFlipped || (!isReview && !isFreePractice);
+    const isDeToTr = learningDirection === 'de-tr';
+
+    let mainDisplayText;
+    if (!isRevealed && isDeToTr) {
+      mainDisplayText = word.de_trans; // Vorne: Deutsch
+    } else {
+      mainDisplayText = formatTurkishText(`{${word.tr_root}}`, xRayMode, false); // Vorne/Hinten: Türkisch
+    }
+
+    return (
+      <div className="flex flex-col h-[80vh]">
+        <div className="flex justify-between items-center mb-6">
+          <span className="text-sm font-medium text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            {isDeToTr ? '🇩🇪 ➔ 🇹🇷' : '🇹🇷 ➔ 🇩🇪'} • {headerText} • {currentIndex + 1} / {currentQueue.length}
+          </span>
+          <button onClick={() => isFreePractice ? setView('deck_list') : setView('dashboard')} className="p-2 text-slate-400 hover:text-slate-600 bg-slate-100 dark:bg-slate-800 rounded-full transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Die Karteikarte */}
+        <div className="flex-1 bg-white dark:bg-slate-800 rounded-3xl shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-slate-700 flex flex-col p-8 relative overflow-hidden transition-all duration-300">
+          
+          <div className="absolute top-6 left-6 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-bold px-3 py-1.5 rounded-lg uppercase tracking-wider">
+            {word.type}
+          </div>
+
+          <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
+            
+            <h1 className={`${!isRevealed && isDeToTr ? 'text-4xl md:text-5xl' : 'text-5xl md:text-6xl'} font-black text-slate-800 dark:text-white tracking-tight px-4`}>
+              {mainDisplayText}
+            </h1>
+
+            <div className={`transition-all duration-500 flex flex-col items-center space-y-8 w-full ${isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+              
+              <div className="text-2xl font-medium text-slate-500 dark:text-slate-400">
+                {word.de_trans}
+              </div>
+
+              <div className="w-full max-w-sm p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl text-left border border-slate-100 dark:border-slate-800 relative">
+                <Library className="absolute top-5 right-5 w-5 h-5 text-slate-300 dark:text-slate-600" />
+                <p className="text-lg text-slate-700 dark:text-slate-300 font-medium mb-2 leading-relaxed pr-8">
+                  {formatTurkishText(word.ex_tr, xRayMode, true)}
+                </p>
+                <p className="text-sm text-slate-500 dark:text-slate-500">
+                  {word.ex_de}
+                </p>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        {/* Controls */}
+        <div className="mt-8 h-20 shrink-0">
+          {!isReview && !isFreePractice ? (
+            <button 
+              onClick={handleLearnNext}
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg flex justify-center items-center gap-2 transition-transform active:scale-95"
+            >
+              <Check className="w-6 h-6" /> Verstanden, weiter
+            </button>
+          ) : !isCardFlipped ? (
+            <button 
+              onClick={() => setIsCardFlipped(true)}
+              className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-lg flex justify-center items-center transition-transform active:scale-95 shadow-lg shadow-indigo-200 dark:shadow-none"
+            >
+              Karte umdrehen
+            </button>
+          ) : isFreePractice ? (
+            <button 
+              onClick={handleFreePracticeNext}
+              className="w-full py-4 bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-2xl font-bold text-lg flex justify-center items-center gap-2 transition-transform active:scale-95 shadow-lg"
+            >
+              Nächste Karte <ArrowRight className="w-5 h-5" />
+            </button>
+          ) : (
+            <div className="grid grid-cols-3 gap-3 animate-in fade-in slide-in-from-bottom-2">
+              <button onClick={() => handleReviewAnswer(0)} className="py-4 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-2xl font-bold transition-colors">
+                Schwer
+              </button>
+              <button onClick={() => handleReviewAnswer(1)} className="py-4 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-2xl font-bold transition-colors">
+                Gut
+              </button>
+              <button onClick={() => handleReviewAnswer(2)} className="py-4 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-2xl font-bold flex flex-col items-center justify-center leading-none transition-colors">
+                <span>Einfach</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 flex items-center justify-center p-4 md:p-8 font-sans selection:bg-indigo-200 overflow-hidden">
+      <div className="w-full max-w-md mx-auto">
+        
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-[50vh] text-slate-500">
+            <BrainCircuit className="w-12 h-12 text-indigo-400 animate-pulse mb-4" />
+            <p>Lade App-Daten...</p>
+          </div>
+        ) : (
+          <>
+            {view === 'dashboard' && renderDashboard()}
+            {view === 'deck_list' && renderDeckList()}
+            {view === 'grammar' && renderGrammar()}
+            {(view === 'learn' || view === 'review' || view === 'free_practice') && renderFlashcard()}
+          </>
+        )}
+
+      </div>
+    </div>
+  );
+}
