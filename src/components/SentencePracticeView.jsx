@@ -36,7 +36,7 @@ export default function SentencePracticeView({
   const pKey = sentence ? getProgressKey(sentence.id) : null;
   const progressData = sentence ? sentenceProgress[pKey] : null;
   
-  const [practiceMode, setPracticeMode] = useState('cloze'); // 'cloze' oder 'full'
+  const [practiceMode, setPracticeMode] = useState('full'); // 'cloze' oder 'full'
 
   if (!sentence) return null;
 

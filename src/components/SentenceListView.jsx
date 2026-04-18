@@ -27,21 +27,25 @@ export default function SentenceListView({ sentences, startSentenceCategoryPract
 
     const groups = {};
     filtered.forEach(s => {
-      const key = `${s.level || '?'}-${s.topic || 'Sonstiges'}-${s.subtopic || ''}`;
+      const defaultTopic = s.topic ? s.topic.trim().toLowerCase() : 'sonstiges';
+      const key = defaultTopic;
+      
       if (!groups[key]) {
         groups[key] = {
-          level: s.level,
-          topic: s.topic,
-          subtopic: s.subtopic,
+          topic: defaultTopic,
+          levels: new Set(),
           sentences: []
         };
       }
+      if (s.level) groups[key].levels.add(s.level);
       groups[key].sentences.push(s);
     });
 
-    return Object.values(groups).sort((a, b) => {
-      if (a.level !== b.level) return (a.level || '').localeCompare(b.level || '');
-      return (a.topic || '').localeCompare(b.topic || '');
+    return Object.values(groups).map(g => ({
+      ...g,
+      levelString: Array.from(g.levels).sort().join(', ')
+    })).sort((a, b) => {
+      return a.topic.localeCompare(b.topic);
     });
   }, [sentences, filterLevel, searchQuery]);
 
@@ -96,17 +100,14 @@ export default function SentenceListView({ sentences, startSentenceCategoryPract
               <div className="flex justify-between items-start mb-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    {cat.level && (
+                    {cat.levelString && (
                       <span className="bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-xs font-bold">
-                        {cat.level}
+                        {cat.levelString}
                       </span>
                     )}
-                    <span className="text-sm font-medium text-teal-600 dark:text-teal-400 uppercase tracking-widest">
-                      {cat.topic}
-                    </span>
                   </div>
                   <h3 className="text-lg font-bold text-slate-800 dark:text-white capitalize">
-                    {cat.subtopic || cat.topic}
+                    {cat.topic === 'sonstiges' ? 'Sonstiges' : cat.topic}
                   </h3>
                 </div>
                 <div className="text-right">

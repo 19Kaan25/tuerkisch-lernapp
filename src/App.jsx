@@ -468,7 +468,25 @@ export default function App() {
           header: true,
           skipEmptyLines: true,
           complete: (results) => {
-            const parsedSentences = results.data.filter(row => row.id && row.tr_sentence && row.de_translation);
+            const parsedSentences = results.data.map(row => {
+              if (row.de_translation && /^[A-C][1-2]$/.test(row.de_translation.trim())) {
+                // Heuristik für verschobene Spalten (Legacy Format 151+)
+                return {
+                  id: "legacy_" + row.id,
+                  level: row.de_translation.trim(),
+                  topic: row.tr_sentence ? row.tr_sentence.trim().toLowerCase() : 'sonstiges',
+                  subtopic: 'allgemein',
+                  tr_sentence: row.de_prompt,
+                  de_translation: row.level,
+                  de_prompt: row.level,
+                  grammar_focus: row.grammar_focus,
+                  tags: row.difficulty,
+                  cloze_tr: null,
+                  cloze_answer: null
+                };
+              }
+              return row;
+            }).filter(row => row.id && row.tr_sentence && row.de_translation);
             setSentences(parsedSentences);
             console.log(`Geladene Sätze: ${parsedSentences.length} von ${results.data.length}`);
           },
