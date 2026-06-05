@@ -1,27 +1,56 @@
 import React, { useState } from 'react';
-import { Mail, ArrowLeft, CheckCircle } from 'lucide-react';
+import { ArrowLeft, LogIn, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 export default function AuthView({ setView }) {
+  const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [registered, setRegistered] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.origin },
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-    } else {
-      setSent(true);
+
+    if (mode === 'register' && password !== passwordConfirm) {
+      setError('Passwörter stimmen nicht überein.');
+      return;
     }
+    if (password.length < 6) {
+      setError('Passwort muss mindestens 6 Zeichen lang sein.');
+      return;
+    }
+
+    setLoading(true);
+    if (mode === 'login') {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      setLoading(false);
+      if (error) {
+        setError(error.message === 'Invalid login credentials'
+          ? 'E-Mail oder Passwort falsch.'
+          : error.message);
+      } else {
+        setView('dashboard');
+      }
+    } else {
+      const { error } = await supabase.auth.signUp({ email, password });
+      setLoading(false);
+      if (error) {
+        setError(error.message);
+      } else {
+        setRegistered(true);
+      }
+    }
+  };
+
+  const switchMode = (newMode) => {
+    setMode(newMode);
+    setError(null);
+    setPassword('');
+    setPasswordConfirm('');
   };
 
   return (
@@ -34,29 +63,46 @@ export default function AuthView({ setView }) {
         Zurück zum Dashboard
       </button>
 
-      <div className="text-center py-6">
-        <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Mail className="w-8 h-8 text-indigo-500" />
-        </div>
+      <div className="text-center py-4">
         <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Konto verbinden</h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">
-          Fortschritt geräteübergreifend synchronisieren — kein Passwort nötig.
+        <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">
+          Fortschritt geräteübergreifend synchronisieren.
         </p>
       </div>
 
-      {sent ? (
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-6 text-center space-y-3">
-          <CheckCircle className="w-10 h-10 text-emerald-500 mx-auto" />
-          <p className="font-bold text-emerald-800 dark:text-emerald-300">Magic Link gesendet!</p>
+      <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl flex border border-slate-200 dark:border-slate-700">
+        <button
+          onClick={() => switchMode('login')}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${mode === 'login' ? 'bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+        >
+          Anmelden
+        </button>
+        <button
+          onClick={() => switchMode('register')}
+          className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${mode === 'register' ? 'bg-white dark:bg-slate-700 shadow text-indigo-600 dark:text-indigo-400' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+        >
+          Registrieren
+        </button>
+      </div>
+
+      {registered ? (
+        <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800/50 rounded-2xl p-6 text-center space-y-2">
+          <p className="font-bold text-emerald-800 dark:text-emerald-300">Konto erstellt!</p>
           <p className="text-sm text-emerald-700 dark:text-emerald-400">
-            Schau in dein Postfach für <strong>{email}</strong> und klicke auf den Link.
+            Bitte bestätige deine E-Mail-Adresse, dann kannst du dich anmelden.
           </p>
+          <button
+            onClick={() => { setRegistered(false); switchMode('login'); }}
+            className="mt-3 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            Zur Anmeldung
+          </button>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-              E-Mail-Adresse
+              E-Mail
             </label>
             <input
               type="email"
@@ -68,6 +114,36 @@ export default function AuthView({ setView }) {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+              Passwort
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Mindestens 6 Zeichen"
+              required
+              className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+            />
+          </div>
+
+          {mode === 'register' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                Passwort bestätigen
+              </label>
+              <input
+                type="password"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                placeholder="Passwort wiederholen"
+                required
+                className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+              />
+            </div>
+          )}
+
           {error && (
             <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 px-4 py-3 rounded-xl">
               {error}
@@ -76,16 +152,12 @@ export default function AuthView({ setView }) {
 
           <button
             type="submit"
-            disabled={loading || !email}
+            disabled={loading || !email || !password}
             className="w-full flex items-center justify-center gap-2 py-3 px-6 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-md shadow-indigo-200 dark:shadow-none"
           >
-            <Mail className="w-5 h-5" />
-            {loading ? 'Wird gesendet…' : 'Magic Link senden'}
+            {mode === 'login' ? <LogIn className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
+            {loading ? 'Bitte warten…' : mode === 'login' ? 'Anmelden' : 'Konto erstellen'}
           </button>
-
-          <p className="text-xs text-center text-slate-400 dark:text-slate-500">
-            Du erhältst einen Einmal-Link per E-Mail. Kein Passwort erforderlich.
-          </p>
         </form>
       )}
     </div>
