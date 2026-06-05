@@ -8,6 +8,7 @@ import GrammarPracticeView from './components/GrammarPracticeView';
 import SentenceListView from './components/SentenceListView';
 import SentencePracticeView from './components/SentencePracticeView';
 import AuthView from './components/AuthView';
+import ProfileEditView from './components/ProfileEditView';
 import Papa from 'papaparse';
 import { GRAMMAR_PRACTICE_SECTIONS } from './data/grammarPracticeBank';
 import { GRAMMAR_TOPICS } from './data/grammarTheoryTopics';
@@ -1050,6 +1051,9 @@ export default function App() {
           <>
             {view === 'auth' && (
               <AuthView setView={setView} />
+            )}
+            {view === 'profile' && (
+              <ProfileEditView user={user} setView={setView} />
             )}
             {view === 'dashboard' && (
               <DashboardView
