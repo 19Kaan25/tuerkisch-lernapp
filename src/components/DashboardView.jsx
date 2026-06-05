@@ -38,11 +38,11 @@ export default function DashboardView({
           <div className="flex items-center gap-2">
             <button
               onClick={() => setView('profile')}
-              className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors group"
+              className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 transition-colors"
               title="Profil bearbeiten"
             >
-              <span className="truncate max-w-[140px] text-slate-400 dark:text-slate-500">{user.user_metadata?.display_name || user.email}</span>
-              <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              <span className="truncate max-w-[140px]">{user.user_metadata?.display_name || user.email}</span>
+              <Pencil className="w-3 h-3 shrink-0" />
             </button>
             <button
               onClick={onLogout}

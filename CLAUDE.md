@@ -2,6 +2,13 @@
 
 Dieses Dokument beschreibt Aufbau, Konventionen und Ziele der App für Claude als Co-Entwickler.
 
+## Wichtig: Mobile First
+
+Die App wird primär auf dem **Handy** genutzt. Alle UI-Entscheidungen müssen auf Touch ausgelegt sein:
+- Kein Hover-abhängiges UI (`group-hover`, `hover:opacity`) für interaktive Elemente
+- Buttons und Tap-Targets mindestens 44px hoch
+- Kein Tooltip/Title als einzige Erklärungs-Quelle
+
 ## Projekt-Überblick
 
 React-basierte Single-Page-App zum Lernen von Türkisch (Deutsch ↔ Türkisch) mit:
