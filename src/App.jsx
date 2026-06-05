@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { BrainCircuit } from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import DeckListView from './components/DeckListView';
@@ -7,9 +7,12 @@ import FlashcardView from './components/FlashcardView';
 import GrammarPracticeView from './components/GrammarPracticeView';
 import SentenceListView from './components/SentenceListView';
 import SentencePracticeView from './components/SentencePracticeView';
+import AuthView from './components/AuthView';
 import Papa from 'papaparse';
 import { GRAMMAR_PRACTICE_SECTIONS } from './data/grammarPracticeBank';
 import { GRAMMAR_TOPICS } from './data/grammarTheoryTopics';
+import { supabase } from './lib/supabase';
+import { loadProgressFromSupabase, pushVocabProgress, pushSentenceProgress, pushGrammarProgress } from './hooks/useSync';
 
 // --- LEGACY: GRAMMATIK DATEN (A1 bis C1) ---
 const LEGACY_GRAMMAR_TOPICS = [
@@ -436,6 +439,8 @@ export default function App() {
     const savedDir = localStorage.getItem('turkishVocabDirection');
     return savedDir || 'tr-de';
   });
+
+  const [user, setUser] = useState(null);
   
   const [currentQueue, setCurrentQueue] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -521,6 +526,10 @@ export default function App() {
   }, [progress]);
 
   useEffect(() => {
+    localStorage.setItem('turkishSentenceProgressV1', JSON.stringify(sentenceProgress));
+  }, [sentenceProgress]);
+
+  useEffect(() => {
     localStorage.setItem('turkishVocabXRay', JSON.stringify(xRayMode));
   }, [xRayMode]);
 
@@ -531,6 +540,66 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('turkishGrammarPracticeProgressV1', JSON.stringify(grammarPracticeProgress));
   }, [grammarPracticeProgress]);
+
+  // --- AUTH + SYNC ---
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    loadProgressFromSupabase(user).then(({ vocab, sentence, grammar }) => {
+      if (Object.keys(vocab).length > 0) {
+        setProgress(vocab);
+      } else if (Object.keys(progress).length > 0) {
+        pushVocabProgress(user, progress);
+      }
+      if (Object.keys(sentence).length > 0) {
+        setSentenceProgress(sentence);
+      } else if (Object.keys(sentenceProgress).length > 0) {
+        pushSentenceProgress(user, sentenceProgress);
+      }
+      if (Object.keys(grammar).length > 0) {
+        setGrammarPracticeProgress(grammar);
+      } else if (Object.keys(grammarPracticeProgress).length > 0) {
+        pushGrammarProgress(user, grammarPracticeProgress);
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  const vocabSyncTimer = useRef(null);
+  useEffect(() => {
+    if (!user) return;
+    clearTimeout(vocabSyncTimer.current);
+    vocabSyncTimer.current = setTimeout(() => pushVocabProgress(user, progress), 2000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress]);
+
+  const sentenceSyncTimer = useRef(null);
+  useEffect(() => {
+    if (!user) return;
+    clearTimeout(sentenceSyncTimer.current);
+    sentenceSyncTimer.current = setTimeout(() => pushSentenceProgress(user, sentenceProgress), 2000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sentenceProgress]);
+
+  const grammarSyncTimer = useRef(null);
+  useEffect(() => {
+    if (!user) return;
+    clearTimeout(grammarSyncTimer.current);
+    grammarSyncTimer.current = setTimeout(() => pushGrammarProgress(user, grammarPracticeProgress), 2000);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [grammarPracticeProgress]);
+
+  const handleLogout = () => supabase.auth.signOut();
 
   // Hilfsfunktion: Gibt die korrekte ID für den Speicher-Fortschritt zurück
   const getProgressKey = useCallback((id) => {
@@ -979,6 +1048,9 @@ export default function App() {
           </div>
         ) : (
           <>
+            {view === 'auth' && (
+              <AuthView setView={setView} />
+            )}
             {view === 'dashboard' && (
               <DashboardView
                 learningDirection={learningDirection}
@@ -994,6 +1066,8 @@ export default function App() {
                 startGrammarPractice={startGrammarPractice}
                 xRayMode={xRayMode}
                 setXRayMode={setXRayMode}
+                user={user}
+                onLogout={handleLogout}
               />
             )}
             {view === 'deck_list' && (

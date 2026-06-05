@@ -8,7 +8,9 @@ import {
   ArrowRight,
   Layers,
   GraduationCap,
-  MessageSquare
+  MessageSquare,
+  LogIn,
+  LogOut,
 } from 'lucide-react';
 
 export default function DashboardView({
@@ -25,9 +27,34 @@ export default function DashboardView({
   startGrammarPractice,
   xRayMode,
   setXRayMode,
+  user,
+  onLogout,
 }) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
+      <div className="flex items-center justify-end">
+        {user ? (
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[160px]">{user.email}</span>
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors font-medium"
+              title="Abmelden"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Abmelden
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setView('auth')}
+            className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors font-medium"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            Konto verbinden
+          </button>
+        )}
+      </div>
       <div className="bg-slate-100 dark:bg-slate-800/80 p-1.5 rounded-2xl flex items-center border border-slate-200 dark:border-slate-700 shadow-sm">
         <button
           onClick={() => setLearningDirection('tr-de')}
