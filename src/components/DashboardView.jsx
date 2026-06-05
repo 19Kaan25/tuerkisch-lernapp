@@ -35,7 +35,7 @@ export default function DashboardView({
       <div className="flex items-center justify-end">
         {user ? (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[160px]">{user.email}</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[160px]">{user.user_metadata?.display_name || user.email}</span>
             <button
               onClick={onLogout}
               className="flex items-center gap-1 text-xs text-slate-500 hover:text-red-500 dark:hover:text-red-400 transition-colors font-medium"
