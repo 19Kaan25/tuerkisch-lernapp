@@ -1,5 +1,14 @@
 import React from 'react';
-import { AlertTriangle, ArrowRight, Check, Library, X } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check, Library, Volume2, X } from 'lucide-react';
+
+const hasTTS = typeof window !== 'undefined' && 'speechSynthesis' in window;
+const speak = (text) => {
+  if (!hasTTS) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'tr-TR';
+  window.speechSynthesis.speak(utt);
+};
 
 export default function FlashcardView({
   view,
@@ -70,8 +79,20 @@ export default function FlashcardView({
           </h1>
 
           <div className={`transition-all duration-500 flex flex-col items-center space-y-8 w-full ${isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
-            <div className="text-2xl font-medium text-slate-500 dark:text-slate-400">
-              {word.de_trans}
+            <div className="flex flex-col items-center gap-3">
+              <div className="text-2xl font-medium text-slate-500 dark:text-slate-400">
+                {word.de_trans}
+              </div>
+              {hasTTS && (
+                <button
+                  onClick={() => speak(word.tr_root)}
+                  className="flex items-center gap-1.5 text-slate-400 active:text-indigo-500 transition-colors px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 text-sm"
+                  aria-label="Türkische Aussprache"
+                >
+                  <Volume2 className="w-4 h-4" />
+                  Anhören
+                </button>
+              )}
             </div>
 
             <div className="w-full max-w-sm p-5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl text-left border border-slate-100 dark:border-slate-800 relative">
