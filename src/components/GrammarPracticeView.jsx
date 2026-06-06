@@ -48,7 +48,8 @@ export default function GrammarPracticeView({ sections, progress, onCompleteSect
     if (isLastQuestion) {
       const correct = answers.filter(Boolean).length;
       const total = activeSection.questions.length;
-      onCompleteSection(activeSection.id, correct, total);
+      const questionIds = activeSection.questions.map(q => q.id);
+      onCompleteSection(activeSection.id, correct, total, answers, questionIds);
       setShowResult(true);
       return;
     }

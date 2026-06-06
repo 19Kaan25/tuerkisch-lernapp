@@ -9,6 +9,7 @@ import SentenceListView from './components/SentenceListView';
 import SentencePracticeView from './components/SentencePracticeView';
 import AuthView from './components/AuthView';
 import ProfileEditView from './components/ProfileEditView';
+import AnalyticsView from './components/AnalyticsView';
 import Papa from 'papaparse';
 import { GRAMMAR_PRACTICE_SECTIONS } from './data/grammarPracticeBank';
 import { GRAMMAR_TOPICS } from './data/grammarTheoryTopics';
@@ -455,6 +456,16 @@ export default function App() {
     return savedProgress ? JSON.parse(savedProgress) : {};
   });
 
+  const [grammarQuestionStats, setGrammarQuestionStats] = useState(() => {
+    const saved = localStorage.getItem('turkishGrammarQuestionStatsV1');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [learningSessionLog, setLearningSessionLog] = useState(() => {
+    const saved = localStorage.getItem('turkishLearningSessionsV1');
+    return saved ? JSON.parse(saved) : [];
+  });
+
   useEffect(() => {
     fetch('/vocab.json')
       .then(res => res.json())
@@ -542,6 +553,14 @@ export default function App() {
     localStorage.setItem('turkishGrammarPracticeProgressV1', JSON.stringify(grammarPracticeProgress));
   }, [grammarPracticeProgress]);
 
+  useEffect(() => {
+    localStorage.setItem('turkishGrammarQuestionStatsV1', JSON.stringify(grammarQuestionStats));
+  }, [grammarQuestionStats]);
+
+  useEffect(() => {
+    localStorage.setItem('turkishLearningSessionsV1', JSON.stringify(learningSessionLog));
+  }, [learningSessionLog]);
+
   // --- AUTH + SYNC ---
 
   useEffect(() => {
@@ -602,10 +621,17 @@ export default function App() {
 
   const handleLogout = () => supabase.auth.signOut();
 
-  // Hilfsfunktion: Gibt die korrekte ID für den Speicher-Fortschritt zurück
   const getProgressKey = useCallback((id) => {
     return learningDirection === 'de-tr' ? `${id}_rev` : String(id);
   }, [learningDirection]);
+
+  const appendToSessionLog = useCallback((correct, type) => {
+    setLearningSessionLog(prev => {
+      const entry = { ts: Date.now(), correct, type };
+      const updated = [...prev, entry];
+      return updated.length > 2000 ? updated.slice(updated.length - 2000) : updated;
+    });
+  }, []);
 
   const stats = useMemo(() => {
     const now = Date.now();
@@ -778,6 +804,8 @@ export default function App() {
         }
       }
 
+      appendToSessionLog(quality > 0, 'sentence');
+
       if (currentIndex < currentQueue.length - 1) {
         setCurrentIndex(prev => prev + 1);
         setIsCardFlipped(false);
@@ -811,6 +839,8 @@ export default function App() {
         nextReview: quality === 0 ? 0 : nextReview,
       }
     }));
+
+    appendToSessionLog(quality > 0, 'sentence');
 
     if (currentIndex < currentQueue.length - 1) {
       setCurrentIndex(prev => prev + 1);
@@ -877,7 +907,7 @@ export default function App() {
     setView('grammar');
   };
 
-  const handleGrammarPracticeComplete = (sectionId, correct, total) => {
+  const handleGrammarPracticeComplete = (sectionId, correct, total, answers = [], questionIds = []) => {
     setGrammarPracticeProgress((prev) => {
       const existing = prev[sectionId] || {
         attempts: 0,
@@ -896,6 +926,27 @@ export default function App() {
         },
       };
     });
+
+    if (answers.length > 0 && questionIds.length === answers.length) {
+      setGrammarQuestionStats(prev => {
+        const updated = { ...prev };
+        questionIds.forEach((qId, i) => {
+          const existing = updated[qId] || { correct: 0, total: 0 };
+          updated[qId] = {
+            correct: existing.correct + (answers[i] ? 1 : 0),
+            total: existing.total + 1,
+          };
+        });
+        return updated;
+      });
+
+      setLearningSessionLog(prev => {
+        const ts = Date.now();
+        const newEntries = answers.map(isCorrect => ({ ts, correct: isCorrect, type: 'grammar' }));
+        const updated = [...prev, ...newEntries];
+        return updated.length > 2000 ? updated.slice(updated.length - 2000) : updated;
+      });
+    }
   };
 
   const handleLearnNext = () => {
@@ -994,6 +1045,8 @@ export default function App() {
         }
       }
 
+      appendToSessionLog(quality > 0, 'vocab');
+
       if (currentIndex < currentQueue.length - 1) {
         setCurrentIndex(prev => prev + 1);
         setIsCardFlipped(false);
@@ -1027,6 +1080,8 @@ export default function App() {
         nextReview: quality === 0 ? 0 : nextReview,
       }
     }));
+
+    appendToSessionLog(quality > 0, 'vocab');
 
     if (currentIndex < currentQueue.length - 1) {
       setCurrentIndex(prev => prev + 1);
@@ -1072,6 +1127,18 @@ export default function App() {
                 setXRayMode={setXRayMode}
                 user={user}
                 onLogout={handleLogout}
+                onAnalytics={() => setView('analytics')}
+              />
+            )}
+            {view === 'analytics' && (
+              <AnalyticsView
+                vocabProgress={progress}
+                grammarPracticeProgress={grammarPracticeProgress}
+                grammarQuestionStats={grammarQuestionStats}
+                learningSessionLog={learningSessionLog}
+                vocab={vocab}
+                grammarPracticeSections={GRAMMAR_PRACTICE_SECTIONS}
+                onBack={() => setView('dashboard')}
               />
             )}
             {view === 'deck_list' && (

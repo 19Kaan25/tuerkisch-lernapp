@@ -12,11 +12,11 @@ Die App wird primär auf dem **Handy** genutzt. Alle UI-Entscheidungen müssen a
 ## Projekt-Überblick
 
 React-basierte Single-Page-App zum Lernen von Türkisch (Deutsch ↔ Türkisch) mit:
-- **Vokabeltraining**: 500+ Wörter in 25 Decks à 20 Wörter
-- **Satztraining**: 600 Sätze (A1–C2), nach Topic und CEFR-Level filterbar
-- **Grammatik**: 10 Theorie-Themen + 80+ Quiz-Fragen (A1–B1 Kern)
+- **Vokabeltraining**: 1000 Wörter in 50 Decks à 20 Wörter
+- **Satztraining**: 600 Sätze (A1–C2), nach Topic und CEFR-Level filterbar; 4 Übungsmodi (Tippen, Baukasten, Lückentext, Ganzsatz)
+- **Grammatik**: 18 Quiz-Module à 10 Fragen (A1–C1); TTS für Aussprache in allen Modi
 - **SRS**: Eigenes Spaced-Repetition-System (SM-2-Variante), bidirektional (TR→DE / DE→TR)
-- **Persistenz**: Ausschließlich `localStorage`, kein Backend
+- **Persistenz**: `localStorage` (primär) + Supabase-Sync (optional, nach Login)
 
 ## Tech Stack
 
@@ -27,7 +27,7 @@ React-basierte Single-Page-App zum Lernen von Türkisch (Deutsch ↔ Türkisch) 
 | Tailwind CSS | 4.2 | Styling (utility-first, dark mode) |
 | Lucide React | 1.7 | Icons |
 | PapaParse | 5.5 | CSV-Parsing für `sentences_tr_de.csv` |
-| Supabase JS | 2.x | Auth (Magic Link) + Datenbank-Sync |
+| Supabase JS | 2.x | Auth (E-Mail + Passwort) + Datenbank-Sync |
 
 ## Befehle
 
@@ -61,7 +61,7 @@ dashboard → learn / review / deck_list / free_practice
 | `src/components/GrammarView.jsx` | Grammatik-Theorie-Browser |
 | `src/components/GrammarPracticeView.jsx` | Grammatik-Quiz (Multiple Choice) |
 | `src/components/SentenceListView.jsx` | Satz-Browser mit Filter und Suche |
-| `src/components/SentencePracticeView.jsx` | Satz-Lern/Review-Interface |
+| `src/components/SentencePracticeView.jsx` | Satz-Übungen: Tippen, Baukasten (Token-Reordering), Lückentext, Ganzsatz; TTS |
 
 **Alle Komponenten sind rein präsentational** — kein eigener State außer lokalem UI-State (z.B. Flip-Animation). Alle App-Logik und Daten kommen als Props aus `App.jsx`.
 
@@ -74,7 +74,7 @@ Rohdaten kommen via `fetch('/vocab.json')` und `fetch('/sentences_tr_de.csv')` a
 
 - `src/lib/supabase.js` — Supabase-Client (Credentials in `.env.local`)
 - `src/hooks/useSync.js` — `loadProgressFromSupabase`, `pushVocabProgress`, `pushSentenceProgress`, `pushGrammarProgress`
-- `src/components/AuthView.jsx` — Magic-Link-Login-Formular
+- `src/components/AuthView.jsx` — E-Mail + Passwort Login/Registrierung (Name-Feld bei Signup)
 - Gast-Modus: App funktioniert ohne Login (nur localStorage)
 - Sync: Beim Login wird Supabase-State geladen; bei jeder Änderung debounced Push (2 s) an Supabase
 - Migration: Wenn Supabase leer und localStorage hat Daten → automatischer Upload beim Erstlogin
@@ -105,10 +105,14 @@ cloze_tr, cloze_answer, register
 
 ### `src/data/grammarPracticeBank.js`
 
-10 Module à ~8–10 Fragen (A1–B1). Struktur pro Frage:
+18 Module à 10 Fragen (A1–C1). Struktur pro Frage:
 ```js
-{ question: "...", options: ["A","B","C","D"], correct: 0, explanation: "..." }
+{ id: "m1-1", prompt: "...", options: ["A","B","C","D"], correctIndex: 0, explanation: "..." }
 ```
+
+Module 1–10: A1–B1 (Satzbau, Kasus, Besitz, Tempora, Modalität, Verneinung, Postpositionen)
+Module 11–14: B1/B2 (Relativsätze, Adverbialsätze, Verbdiathese, Nominalisierung)
+Module 15–18: B2/C1 (Bedingungssätze, Passiv+Kausativ, Evidentialität, Verbalnomen)
 
 ### SRS-Konstanten (`App.jsx`)
 
@@ -135,8 +139,13 @@ Bei neuen Lernmodi dasselbe Schema verwenden.
 
 ## Roadmap
 
-- [x] Backend + User-Accounts (Supabase Auth + Sync) — implementiert
-- [ ] Audio / TTS für türkische Aussprache (Web Speech API oder externer Dienst)
-- [ ] Mehr Grammatik-Fragen für C1/C2-Level
+- [x] Backend + User-Accounts (Supabase Auth + Sync, E-Mail+Passwort) — implementiert
+- [x] TTS (Text-to-Speech) via Web Speech API — FlashcardView + SentencePracticeView
+- [x] Tipp-Modus in SentencePracticeView (freie Texteingabe, Auto-SRS, TR-Sonderzeichen-Buttons)
+- [x] Satzbaukasten (Token-Reordering) in SentencePracticeView
+- [x] B2/C1 Grammatik-Module (15–18: Bedingungssätze, Passiv/Kausativ, Evidentialität, Verbalnomen)
+- [ ] STT (Speech-to-Text) — Chrome-only, `SpeechRecognition` API, Button ausgeblendet auf iOS
+- [ ] KI-Grammatik-Feedback (Claude Haiku via Supabase Edge Function, admin `ai_enabled` Flag)
+- [ ] Konversations-Roleplay (Chat-Interface, vordef. Szenarien)
 - [ ] PWA-Manifest für Installation auf Mobilgeräten
-- [ ] Analytics: Schwachstellen-Tracking, optimale Wiederholungszeiten
+- [x] Analytics: Schwachstellen-Tracking, optimale Wiederholungszeiten — AnalyticsView mit Vokabel-Schwachstellen (ease/failedStreak/isLeech), Grammatik-Schwächen (per-Frage), Lernzeit-Analyse

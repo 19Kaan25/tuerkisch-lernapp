@@ -12,6 +12,7 @@ import {
   LogIn,
   LogOut,
   Pencil,
+  BarChart2,
 } from 'lucide-react';
 
 export default function DashboardView({
@@ -30,6 +31,7 @@ export default function DashboardView({
   setXRayMode,
   user,
   onLogout,
+  onAnalytics,
 }) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
@@ -190,14 +192,14 @@ export default function DashboardView({
           <ArrowRight className="w-5 h-5 text-slate-400" />
         </button>
 
-        <div className="grid grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-3 gap-3 pt-2">
           <button
             onClick={() => setView('sentences')}
             className="flex flex-col items-center justify-center p-4 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-2xl transition-all border border-transparent dark:border-slate-700 text-center"
           >
             <MessageSquare className="w-6 h-6 text-slate-500 mb-2" />
-            <div className="font-bold text-sm">Übersicht & Themen</div>
-            <div className="text-slate-500 text-xs mt-1">Sätze explorieren</div>
+            <div className="font-bold text-sm">Satz-Übersicht</div>
+            <div className="text-slate-500 text-xs mt-1">Themen</div>
           </button>
 
           <button
@@ -207,6 +209,15 @@ export default function DashboardView({
             <Layers className="w-6 h-6 text-slate-500 mb-2" />
             <div className="font-bold text-sm">Vokabel-Decks</div>
             <div className="text-slate-500 text-xs mt-1">Ohne Algorithmus</div>
+          </button>
+
+          <button
+            onClick={onAnalytics}
+            className="flex flex-col items-center justify-center p-4 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-700 dark:text-indigo-400 rounded-2xl transition-all border border-transparent dark:border-indigo-800/50 text-center"
+          >
+            <BarChart2 className="w-6 h-6 text-indigo-500 mb-2" />
+            <div className="font-bold text-sm">Analyse</div>
+            <div className="text-indigo-500/70 text-xs mt-1">Schwachstellen</div>
           </button>
         </div>
 
