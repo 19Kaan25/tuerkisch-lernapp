@@ -13,6 +13,7 @@ import {
   LogOut,
   Pencil,
   BarChart2,
+  Puzzle,
 } from 'lucide-react';
 
 export default function DashboardView({
@@ -249,6 +250,20 @@ export default function DashboardView({
               </div>
             </div>
             <ArrowRight className="w-5 h-5 text-slate-400" />
+          </button>
+
+          <button
+            onClick={() => setView('conjugation')}
+            className="col-span-2 flex items-center justify-between p-4 bg-violet-50 dark:bg-violet-900/20 hover:bg-violet-100 dark:hover:bg-violet-900/40 border border-transparent dark:border-violet-800/50 text-violet-700 dark:text-violet-400 rounded-2xl transition-all"
+          >
+            <div className="flex items-center gap-3 text-left">
+              <Puzzle className="w-5 h-5 text-violet-500" />
+              <div>
+                <div className="font-bold">Wortformen-Training</div>
+                <div className="text-violet-600/70 dark:text-violet-500/70 text-sm">Konjugation &amp; Kasus üben</div>
+              </div>
+            </div>
+            <ArrowRight className="w-5 h-5 text-violet-400" />
           </button>
         </div>
       </div>

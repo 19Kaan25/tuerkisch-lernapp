@@ -13,6 +13,9 @@ import AnalyticsView from './components/AnalyticsView';
 import Papa from 'papaparse';
 import { GRAMMAR_PRACTICE_SECTIONS } from './data/grammarPracticeBank';
 import { GRAMMAR_TOPICS } from './data/grammarTheoryTopics';
+import { CONJUGATION_GROUPS } from './data/conjugationExercises';
+import ConjugationView from './components/ConjugationView';
+import ConjugationPracticeView from './components/ConjugationPracticeView';
 import { supabase } from './lib/supabase';
 import { loadProgressFromSupabase, pushVocabProgress, pushSentenceProgress, pushGrammarProgress } from './hooks/useSync';
 
@@ -461,6 +464,18 @@ export default function App() {
     return saved ? JSON.parse(saved) : {};
   });
 
+  const [conjugationProgress, setConjugationProgress] = useState(() => {
+    const saved = localStorage.getItem('turkishConjugationProgressV1');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [conjugationQuestionStats, setConjugationQuestionStats] = useState(() => {
+    const saved = localStorage.getItem('turkishConjugationQuestionStatsV1');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  const [selectedConjugationGroupId, setSelectedConjugationGroupId] = useState(null);
+
   const [learningSessionLog, setLearningSessionLog] = useState(() => {
     const saved = localStorage.getItem('turkishLearningSessionsV1');
     return saved ? JSON.parse(saved) : [];
@@ -556,6 +571,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('turkishGrammarQuestionStatsV1', JSON.stringify(grammarQuestionStats));
   }, [grammarQuestionStats]);
+
+  useEffect(() => {
+    localStorage.setItem('turkishConjugationProgressV1', JSON.stringify(conjugationProgress));
+  }, [conjugationProgress]);
+
+  useEffect(() => {
+    localStorage.setItem('turkishConjugationQuestionStatsV1', JSON.stringify(conjugationQuestionStats));
+  }, [conjugationQuestionStats]);
 
   useEffect(() => {
     localStorage.setItem('turkishLearningSessionsV1', JSON.stringify(learningSessionLog));
@@ -907,6 +930,48 @@ export default function App() {
     setView('grammar');
   };
 
+  const startConjugationPractice = (groupId) => {
+    setSelectedConjugationGroupId(groupId);
+    setView('conjugation_practice');
+  };
+
+  const handleConjugationComplete = (groupId, correct, total, answers = [], exerciseIds = []) => {
+    setConjugationProgress((prev) => {
+      const existing = prev[groupId] || { attempts: 0, bestCorrect: 0, total };
+      return {
+        ...prev,
+        [groupId]: {
+          attempts: existing.attempts + 1,
+          bestCorrect: Math.max(existing.bestCorrect, correct),
+          total,
+          lastCorrect: correct,
+          lastPlayedAt: Date.now(),
+        },
+      };
+    });
+
+    if (answers.length > 0 && exerciseIds.length === answers.length) {
+      setConjugationQuestionStats((prev) => {
+        const updated = { ...prev };
+        exerciseIds.forEach((eId, i) => {
+          const existing = updated[eId] || { correct: 0, total: 0 };
+          updated[eId] = {
+            correct: existing.correct + (answers[i] ? 1 : 0),
+            total: existing.total + 1,
+          };
+        });
+        return updated;
+      });
+
+      setLearningSessionLog((prev) => {
+        const ts = Date.now();
+        const newEntries = answers.map((isCorrect) => ({ ts, correct: isCorrect, type: 'conjugation' }));
+        const updated = [...prev, ...newEntries];
+        return updated.length > 2000 ? updated.slice(updated.length - 2000) : updated;
+      });
+    }
+  };
+
   const handleGrammarPracticeComplete = (sectionId, correct, total, answers = [], questionIds = []) => {
     setGrammarPracticeProgress((prev) => {
       const existing = prev[sectionId] || {
@@ -1165,6 +1230,22 @@ export default function App() {
                 setView={setView}
                 initialSectionId={selectedPracticeSectionId}
                 onOpenTheoryForSection={openGrammarTheoryFromPractice}
+              />
+            )}
+            {view === 'conjugation' && (
+              <ConjugationView
+                groups={CONJUGATION_GROUPS}
+                progress={conjugationProgress}
+                onStartGroup={startConjugationPractice}
+                setView={setView}
+              />
+            )}
+            {view === 'conjugation_practice' && (
+              <ConjugationPracticeView
+                group={CONJUGATION_GROUPS.find((g) => g.id === selectedConjugationGroupId)}
+                progress={conjugationProgress}
+                onCompleteGroup={handleConjugationComplete}
+                setView={setView}
               />
             )}
             {view === 'sentences' && (
