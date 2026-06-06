@@ -6,7 +6,6 @@ import {
   Flame,
   CheckCircle,
   XCircle,
-  BrainCircuit,
   Send,
   Volume2
 } from 'lucide-react';
@@ -234,10 +233,16 @@ export default function SentencePracticeView({
 
             {practiceMode === 'type' ? (
               <>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-5 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl">
-                  {sentence.de_prompt || sentence.de_translation}
-                </p>
-                <div className="text-2xl md:text-4xl font-black text-slate-800 dark:text-white tracking-tight leading-snug">
+                {learningDirection === 'de-tr' ? (
+                  <div className="text-2xl font-bold text-slate-800 dark:text-white mb-4 leading-snug w-full">
+                    {sentence.de_translation}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mb-5 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl w-full">
+                    {sentence.de_translation}
+                  </p>
+                )}
+                <div className="text-xl md:text-2xl font-black text-slate-800 dark:text-white tracking-tight leading-snug w-full">
                   {(sentence.cloze_tr || '').split('___').map((part, i, arr) => (
                     <React.Fragment key={i}>
                       {formatTurkishText(part, xRayMode)}
@@ -295,9 +300,15 @@ export default function SentencePracticeView({
 
             ) : practiceMode === 'cloze' && sentence.cloze_tr ? (
               <>
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-4 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl">
-                  {sentence.de_prompt || sentence.de_translation}
-                </p>
+                {learningDirection === 'de-tr' ? (
+                  <div className="text-2xl font-bold text-slate-800 dark:text-white mb-4 leading-snug w-full">
+                    {sentence.de_translation}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 dark:text-slate-400 text-sm mb-4 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-xl w-full">
+                    {sentence.de_translation}
+                  </p>
+                )}
                 <div className="text-3xl md:text-5xl font-black text-slate-800 dark:text-white mb-6 tracking-tight leading-tight">
                   {sentence.cloze_tr.split('___').map((part, i, arr) => (
                     <React.Fragment key={i}>
@@ -392,13 +403,21 @@ export default function SentencePracticeView({
                       {typeCorrect ? 'Richtig!' : `Richtig wäre: ${sentence.cloze_answer}`}
                     </span>
                   </div>
-                  <button
-                    onClick={handleTypeAdvance}
-                    className="w-full py-4 bg-slate-800 dark:bg-indigo-600 hover:bg-slate-900 dark:hover:bg-indigo-500 active:scale-95 text-white rounded-2xl font-bold text-lg shadow-lg shadow-slate-200 dark:shadow-none transition-all flex items-center justify-center gap-2"
-                  >
-                    <span>Weiter</span>
-                    <ArrowLeft className="w-5 h-5 rotate-180" />
-                  </button>
+                  {isReview ? (
+                    <div className="grid grid-cols-3 gap-3 w-full">
+                      <button onClick={() => handleReviewAnswer(0)} className="py-4 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-2xl font-bold transition-colors active:scale-95">Schwer</button>
+                      <button onClick={() => handleReviewAnswer(1)} className="py-4 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-2xl font-bold transition-colors active:scale-95">Gut</button>
+                      <button onClick={() => handleReviewAnswer(2)} className="py-4 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-2xl font-bold transition-colors active:scale-95">Leicht</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleTypeAdvance}
+                      className="w-full py-4 bg-slate-800 dark:bg-indigo-600 hover:bg-slate-900 dark:hover:bg-indigo-500 active:scale-95 text-white rounded-2xl font-bold text-lg shadow-lg shadow-slate-200 dark:shadow-none transition-all flex items-center justify-center gap-2"
+                    >
+                      <span>Weiter</span>
+                      <ArrowLeft className="w-5 h-5 rotate-180" />
+                    </button>
+                  )}
                 </div>
               )
 
@@ -466,13 +485,21 @@ export default function SentencePracticeView({
                       {tkCorrect ? 'Richtig!' : 'Leider falsch.'}
                     </span>
                   </div>
-                  <button
-                    onClick={handleTokenAdvance}
-                    className="w-full py-4 bg-slate-800 dark:bg-violet-600 hover:bg-slate-900 dark:hover:bg-violet-500 active:scale-95 text-white rounded-2xl font-bold text-lg shadow-lg shadow-slate-200 dark:shadow-none transition-all flex items-center justify-center gap-2"
-                  >
-                    <span>Weiter</span>
-                    <ArrowLeft className="w-5 h-5 rotate-180" />
-                  </button>
+                  {isReview ? (
+                    <div className="grid grid-cols-3 gap-3 w-full">
+                      <button onClick={() => handleReviewAnswer(0)} className="py-4 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-2xl font-bold transition-colors active:scale-95">Schwer</button>
+                      <button onClick={() => handleReviewAnswer(1)} className="py-4 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-2xl font-bold transition-colors active:scale-95">Gut</button>
+                      <button onClick={() => handleReviewAnswer(2)} className="py-4 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-2xl font-bold transition-colors active:scale-95">Leicht</button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleTokenAdvance}
+                      className="w-full py-4 bg-slate-800 dark:bg-violet-600 hover:bg-slate-900 dark:hover:bg-violet-500 active:scale-95 text-white rounded-2xl font-bold text-lg shadow-lg shadow-slate-200 dark:shadow-none transition-all flex items-center justify-center gap-2"
+                    >
+                      <span>Weiter</span>
+                      <ArrowLeft className="w-5 h-5 rotate-180" />
+                    </button>
+                  )}
                 </div>
               )
 
@@ -517,30 +544,9 @@ export default function SentencePracticeView({
                 )}
                 {isReview ? (
                   <div className="grid grid-cols-3 gap-3 w-full">
-                    <button
-                      onClick={() => handleReviewAnswer(0)}
-                      className="flex flex-col items-center justify-center bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 p-4 rounded-2xl transition-colors border border-red-200 dark:border-red-800 active:scale-95"
-                    >
-                      <XCircle className="w-6 h-6 mb-2" />
-                      <span className="font-bold text-sm">Schwer</span>
-                      <span className="text-[10px] opacity-70 mt-1">Sofort</span>
-                    </button>
-                    <button
-                      onClick={() => handleReviewAnswer(1)}
-                      className="flex flex-col items-center justify-center bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 p-4 rounded-2xl transition-colors border border-amber-200 dark:border-amber-800 active:scale-95"
-                    >
-                      <BrainCircuit className="w-6 h-6 mb-2" />
-                      <span className="font-bold text-sm">Gut</span>
-                      <span className="text-[10px] opacity-70 mt-1">1d</span>
-                    </button>
-                    <button
-                      onClick={() => handleReviewAnswer(2)}
-                      className="flex flex-col items-center justify-center bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 p-4 rounded-2xl transition-colors border border-emerald-200 dark:border-emerald-800 active:scale-95"
-                    >
-                      <CheckCircle className="w-6 h-6 mb-2" />
-                      <span className="font-bold text-sm">Leicht</span>
-                      <span className="text-[10px] opacity-70 mt-1">3d</span>
-                    </button>
+                    <button onClick={() => handleReviewAnswer(0)} className="py-4 bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-2xl font-bold transition-colors active:scale-95">Schwer</button>
+                    <button onClick={() => handleReviewAnswer(1)} className="py-4 bg-blue-100 hover:bg-blue-200 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-2xl font-bold transition-colors active:scale-95">Gut</button>
+                    <button onClick={() => handleReviewAnswer(2)} className="py-4 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-2xl font-bold transition-colors active:scale-95">Leicht</button>
                   </div>
                 ) : (
                   <button

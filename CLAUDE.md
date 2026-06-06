@@ -147,5 +147,5 @@ Bei neuen Lernmodi dasselbe Schema verwenden.
 - [ ] STT (Speech-to-Text) — Chrome-only, `SpeechRecognition` API, Button ausgeblendet auf iOS
 - [ ] KI-Grammatik-Feedback (Claude Haiku via Supabase Edge Function, admin `ai_enabled` Flag)
 - [ ] Konversations-Roleplay (Chat-Interface, vordef. Szenarien)
-- [ ] PWA-Manifest für Installation auf Mobilgeräten
+- [x] PWA-Manifest für Installation auf Mobilgeräten — manifest.json, sw.js, Meta-Tags (iOS + Android), SW-Registrierung in main.jsx; Icons unter public/icons/ ablegen
 - [x] Analytics: Schwachstellen-Tracking, optimale Wiederholungszeiten — AnalyticsView mit Vokabel-Schwachstellen (ease/failedStreak/isLeech), Grammatik-Schwächen (per-Frage), Lernzeit-Analyse
