@@ -16,6 +16,7 @@ import { GRAMMAR_TOPICS } from './data/grammarTheoryTopics';
 import { CONJUGATION_GROUPS } from './data/conjugationExercises';
 import ConjugationView from './components/ConjugationView';
 import ConjugationPracticeView from './components/ConjugationPracticeView';
+import WordTypeHubView from './components/WordTypeHubView';
 import { supabase } from './lib/supabase';
 import { loadProgressFromSupabase, pushVocabProgress, pushSentenceProgress, pushGrammarProgress } from './hooks/useSync';
 
@@ -481,6 +482,13 @@ export default function App() {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [wordTypeProgress, setWordTypeProgress] = useState(() => ({
+    Verb:     JSON.parse(localStorage.getItem('turkishWordTypeVerbProgressV1') || '{}'),
+    Adjektiv: JSON.parse(localStorage.getItem('turkishWordTypeAdjektivProgressV1') || '{}'),
+    Nomen:    JSON.parse(localStorage.getItem('turkishWordTypeNomenProgressV1') || '{}'),
+  }));
+  const [activeWordType, setActiveWordType] = useState(null);
+
   useEffect(() => {
     fetch('/vocab.json')
       .then(res => res.json())
@@ -583,6 +591,12 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('turkishLearningSessionsV1', JSON.stringify(learningSessionLog));
   }, [learningSessionLog]);
+
+  useEffect(() => {
+    localStorage.setItem('turkishWordTypeVerbProgressV1',     JSON.stringify(wordTypeProgress.Verb));
+    localStorage.setItem('turkishWordTypeAdjektivProgressV1', JSON.stringify(wordTypeProgress.Adjektiv));
+    localStorage.setItem('turkishWordTypeNomenProgressV1',    JSON.stringify(wordTypeProgress.Nomen));
+  }, [wordTypeProgress]);
 
   // --- AUTH + SYNC ---
 
@@ -691,6 +705,32 @@ export default function App() {
     const newSentences = sentences.length - learned;
     return { learned, due, newSentences, total: sentences.length };
   }, [sentenceProgress, sentences, getProgressKey]);
+
+  const wordTypeVocab = useMemo(() => ({
+    Verb:     vocab.filter(w => w.type.includes('Verb')),
+    Adjektiv: vocab.filter(w => w.type.includes('Adjektiv')),
+    Nomen:    vocab.filter(w => w.type.includes('Nomen')),
+  }), [vocab]);
+
+  const wordTypeStats = useMemo(() => {
+    const now = Date.now();
+    const result = {};
+    ['Verb', 'Adjektiv', 'Nomen'].forEach(type => {
+      const words = wordTypeVocab[type];
+      const typeProgress = wordTypeProgress[type];
+      let learned = 0, due = 0;
+      words.forEach(w => {
+        const pKey = getProgressKey(w.id);
+        const p = typeProgress[pKey];
+        if (p) {
+          learned++;
+          if (p.nextReview <= now) due++;
+        }
+      });
+      result[type] = { total: words.length, learned, due, newWords: words.length - learned };
+    });
+    return result;
+  }, [wordTypeVocab, wordTypeProgress, getProgressKey]);
 
   // --- ACTIONS ---
   
@@ -909,6 +949,184 @@ export default function App() {
       setCurrentIndex(0);
       setIsCardFlipped(false);
       setView('free_practice');
+    }
+  };
+
+  const shuffleArray = arr => {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+
+  const startWordTypeLearn = (type) => {
+    const newCards = shuffleArray(
+      wordTypeVocab[type].filter(w => !wordTypeProgress[type][getProgressKey(w.id)])
+    ).slice(0, 5);
+    if (newCards.length > 0) {
+      setActiveWordType(type);
+      setCurrentQueue(newCards);
+      setCurrentIndex(0);
+      setIsCardFlipped(false);
+      setView('wordtype_learn');
+    }
+  };
+
+  const startWordTypeReview = (type) => {
+    const now = Date.now();
+    const dueCards = shuffleArray(
+      wordTypeVocab[type].filter(w => {
+        const p = wordTypeProgress[type][getProgressKey(w.id)];
+        return p && p.nextReview <= now;
+      })
+    );
+    if (dueCards.length > 0) {
+      setActiveWordType(type);
+      setCurrentQueue(dueCards);
+      setCurrentIndex(0);
+      setIsCardFlipped(false);
+      setView('wordtype_review');
+    }
+  };
+
+  const handleWordTypeLearnNext = () => {
+    const word = currentQueue[currentIndex];
+    const pKey = getProgressKey(word.id);
+    setWordTypeProgress(prev => ({
+      ...prev,
+      [activeWordType]: {
+        ...prev[activeWordType],
+        [pKey]: {
+          interval: 0,
+          ease: 2.3,
+          learningStep: 0,
+          failedStreak: 0,
+          isLeech: false,
+          nextReview: Date.now(),
+        },
+      },
+    }));
+    if (currentIndex < currentQueue.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setIsCardFlipped(false);
+    } else {
+      setView('wordtype_hub');
+    }
+  };
+
+  const handleWordTypeReviewAnswer = (quality) => {
+    const word = currentQueue[currentIndex];
+    const pKey = getProgressKey(word.id);
+    const currentData = wordTypeProgress[activeWordType][pKey] || {
+      interval: 0,
+      ease: 2.3,
+      learningStep: null,
+      failedStreak: 0,
+      isLeech: false,
+    };
+    let newInterval = currentData.interval;
+    let newEase = currentData.ease;
+    const failedStreak = currentData.failedStreak || 0;
+
+    if (currentData.learningStep !== null && currentData.learningStep !== undefined) {
+      if (quality === 0) {
+        setWordTypeProgress(prev => ({
+          ...prev,
+          [activeWordType]: {
+            ...prev[activeWordType],
+            [pKey]: {
+              ...currentData,
+              interval: 0,
+              ease: Math.max(MIN_EASE, newEase - 0.2),
+              learningStep: 0,
+              failedStreak: failedStreak + 1,
+              isLeech: failedStreak + 1 >= LEECH_THRESHOLD,
+              nextReview: 0,
+            },
+          },
+        }));
+      } else {
+        const nextStep = currentData.learningStep + 1;
+        const nextFailedStreak = quality === 2 ? 0 : failedStreak;
+        if (nextStep < LEARNING_STEPS_MS.length) {
+          setWordTypeProgress(prev => ({
+            ...prev,
+            [activeWordType]: {
+              ...prev[activeWordType],
+              [pKey]: {
+                ...currentData,
+                ease: quality === 2 ? Math.min(MAX_EASE, newEase + 0.05) : newEase,
+                learningStep: nextStep,
+                failedStreak: nextFailedStreak,
+                isLeech: false,
+                nextReview: Date.now() + LEARNING_STEPS_MS[nextStep],
+              },
+            },
+          }));
+        } else {
+          const graduatedInterval = quality === 2 ? 4 : 3;
+          setWordTypeProgress(prev => ({
+            ...prev,
+            [activeWordType]: {
+              ...prev[activeWordType],
+              [pKey]: {
+                ...currentData,
+                interval: graduatedInterval,
+                ease: quality === 2 ? Math.min(MAX_EASE, newEase + 0.1) : newEase,
+                learningStep: null,
+                failedStreak: nextFailedStreak,
+                isLeech: false,
+                nextReview: Date.now() + (graduatedInterval * 24 * 60 * 60 * 1000),
+              },
+            },
+          }));
+        }
+      }
+      appendToSessionLog(quality > 0, 'vocab');
+      if (currentIndex < currentQueue.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+        setIsCardFlipped(false);
+      } else {
+        setView('wordtype_hub');
+      }
+      return;
+    }
+
+    if (quality === 0) {
+      newInterval = 0;
+      newEase = Math.max(MIN_EASE, newEase - 0.2);
+    } else if (quality === 1) {
+      newInterval = newInterval === 0 ? 1 : newInterval * 2;
+      newEase = Math.max(MIN_EASE, newEase - 0.02);
+    } else if (quality === 2) {
+      newInterval = newInterval === 0 ? 3 : Math.ceil(newInterval * newEase);
+      newEase = Math.min(MAX_EASE, newEase + 0.15);
+    }
+
+    setWordTypeProgress(prev => ({
+      ...prev,
+      [activeWordType]: {
+        ...prev[activeWordType],
+        [pKey]: {
+          ...currentData,
+          interval: newInterval,
+          ease: newEase,
+          failedStreak: quality === 0 ? failedStreak + 1 : 0,
+          isLeech: quality === 0 ? failedStreak + 1 >= LEECH_THRESHOLD : false,
+          nextReview: quality === 0 ? 0 : Date.now() + (newInterval * 24 * 60 * 60 * 1000),
+        },
+      },
+    }));
+
+    appendToSessionLog(quality > 0, 'vocab');
+
+    if (currentIndex < currentQueue.length - 1) {
+      setCurrentIndex(prev => prev + 1);
+      setIsCardFlipped(false);
+    } else {
+      setView('wordtype_hub');
     }
   };
 
@@ -1193,6 +1411,7 @@ export default function App() {
                 user={user}
                 onLogout={handleLogout}
                 onAnalytics={() => setView('analytics')}
+                onWordTypeTraining={() => setView('wordtype_hub')}
               />
             )}
             {view === 'analytics' && (
@@ -1288,6 +1507,32 @@ export default function App() {
                 handleFreePracticeNext={handleFreePracticeNext}
                 handleReviewAnswer={handleReviewAnswer}
                 setView={setView}
+                formatTurkishText={formatTurkishText}
+              />
+            )}
+            {view === 'wordtype_hub' && (
+              <WordTypeHubView
+                wordTypeStats={wordTypeStats}
+                onLearn={startWordTypeLearn}
+                onReview={startWordTypeReview}
+                onBack={() => setView('dashboard')}
+              />
+            )}
+            {(view === 'wordtype_learn' || view === 'wordtype_review') && (
+              <FlashcardView
+                view={view === 'wordtype_learn' ? 'learn' : 'review'}
+                currentQueue={currentQueue}
+                currentIndex={currentIndex}
+                progress={activeWordType ? wordTypeProgress[activeWordType] : {}}
+                getProgressKey={getProgressKey}
+                isCardFlipped={isCardFlipped}
+                setIsCardFlipped={setIsCardFlipped}
+                learningDirection={learningDirection}
+                xRayMode={xRayMode}
+                handleLearnNext={handleWordTypeLearnNext}
+                handleReviewAnswer={handleWordTypeReviewAnswer}
+                setView={setView}
+                onBack={() => setView('wordtype_hub')}
                 formatTurkishText={formatTurkishText}
               />
             )}

@@ -14,6 +14,7 @@ import {
   Pencil,
   BarChart2,
   Puzzle,
+  BookType,
 } from 'lucide-react';
 
 export default function DashboardView({
@@ -33,6 +34,7 @@ export default function DashboardView({
   user,
   onLogout,
   onAnalytics,
+  onWordTypeTraining,
 }) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-8">
@@ -138,6 +140,20 @@ export default function DashboardView({
             <div className="text-left">
               <div className="font-bold">Wiederholen</div>
               <div className="text-slate-500 text-sm">{stats.due} Karteikarten warten</div>
+            </div>
+          </div>
+          <ArrowRight className="w-5 h-5 text-slate-400" />
+        </button>
+
+        <button
+          onClick={onWordTypeTraining}
+          className="w-full flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800/50 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white rounded-2xl transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <BookType className="w-6 h-6 text-slate-500" />
+            <div className="text-left">
+              <div className="font-bold">Wortarten-Training</div>
+              <div className="text-slate-500 text-sm">Verben · Adjektive · Nomen</div>
             </div>
           </div>
           <ArrowRight className="w-5 h-5 text-slate-400" />

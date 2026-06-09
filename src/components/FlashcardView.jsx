@@ -24,6 +24,7 @@ export default function FlashcardView({
   handleFreePracticeNext,
   handleReviewAnswer,
   setView,
+  onBack,
   formatTurkishText,
 }) {
   const isReview = view === 'review';
@@ -55,7 +56,7 @@ export default function FlashcardView({
           {isDeToTr ? '🇩🇪 ➔ 🇹🇷' : '🇹🇷 ➔ 🇩🇪'} • {headerText} • {currentIndex + 1} / {currentQueue.length}
         </span>
         <button
-          onClick={() => (isFreePractice ? setView('deck_list') : setView('dashboard'))}
+          onClick={() => onBack ? onBack() : (isFreePractice ? setView('deck_list') : setView('dashboard'))}
           className="p-2 text-slate-400 hover:text-slate-600 bg-slate-100 dark:bg-slate-800 rounded-full transition-colors"
         >
           <X className="w-5 h-5" />
